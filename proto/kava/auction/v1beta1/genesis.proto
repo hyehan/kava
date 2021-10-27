@@ -1,0 +1,63 @@
+syntax = "proto3";
+package kava.auction.v1beta1;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/kava-labs/kava/x/auction/types";
+
+// Params defines the parameters for the issuance module.
+message Params {
+  option (gogoproto.goproto_stringer) = false;
+
+  google.protobuf.Duration max_auction_duration = 1 [
+    (gogoproto.nullable)    = false,
+    (gogoproto.stdduration) = true,
+    (gogoproto.moretags)    = "yaml:\"max_auction_duration,omitempty\""
+  ];
+
+  google.protobuf.Duration bid_duration = 2 [
+    (gogoproto.nullable)    = false,
+    (gogoproto.stdduration) = true,
+    (gogoproto.moretags)    = "yaml:\"bid_duration,omitempty\""
+  ];
+
+  bytes increment_surplus = 3 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable)   = false,
+    (gogoproto.jsontag)    = "increment_surplus,omitempty",
+    (gogoproto.moretags)   = "yaml:\"increment_surplus\""
+  ];
+
+  bytes increment_debt = 4 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable)   = false,
+    (gogoproto.jsontag)    = "increment_debt,omitempty",
+    (gogoproto.moretags)   = "yaml:\"increment_debt\""
+  ];
+
+  bytes increment_collateral = 5 [
+    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Dec",
+    (gogoproto.nullable)   = false,
+    (gogoproto.jsontag)    = "increment_collateral,omitempty",
+    (gogoproto.moretags)   = "yaml:\"increment_collateral\""
+  ];
+}
+
+// GenesisState defines the auction module's genesis state.
+message GenesisState {
+  int64 next_auction_id = 1 [(gogoproto.moretags) = "yaml:\"next_auction_id,omitempty\""];
+
+  Params params = 2 [(gogoproto.nullable) = false];
+
+  repeated GenesisAuction auctions = 3
+      [(gogoproto.moretags) = "yaml:\"auctions,omitempty\"", (gogoproto.nullable) = false];
+}
+
+// GenesisAuction is a genesis auction
+message GenesisAuction {
+  option (gogoproto.goproto_stringer) = false;
+
+  repeated google.protobuf.Any auction = 1;
+}
