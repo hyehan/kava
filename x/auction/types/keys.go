@@ -33,23 +33,23 @@ var (
 )
 
 // GetAuctionKey returns the bytes of an auction key
-func GetAuctionKey(auctionID uint64) []byte {
-	return Uint64ToBytes(auctionID)
+func GetAuctionKey(auctionID int64) []byte {
+	return Int64ToBytes(auctionID)
 }
 
 // GetAuctionByTimeKey returns the key for iterating auctions by time
-func GetAuctionByTimeKey(endTime time.Time, auctionID uint64) []byte {
-	return append(sdk.FormatTimeBytes(endTime), Uint64ToBytes(auctionID)...)
+func GetAuctionByTimeKey(endTime time.Time, auctionID int64) []byte {
+	return append(sdk.FormatTimeBytes(endTime), Int64ToBytes(auctionID)...)
 }
 
-// Uint64ToBytes converts a uint64 into fixed length bytes for use in store keys.
-func Uint64ToBytes(id uint64) []byte {
+// Int64ToBytes converts a int64 into fixed length bytes for use in store keys.
+func Int64ToBytes(id int64) []byte {
 	bz := make([]byte, 8)
 	binary.BigEndian.PutUint64(bz, uint64(id))
 	return bz
 }
 
-// Uint64FromBytes converts some fixed length bytes back into a uint64.
-func Uint64FromBytes(bz []byte) uint64 {
-	return binary.BigEndian.Uint64(bz)
+// Int64FromBytes converts some fixed length bytes back into a int64.
+func Int64FromBytes(bz []byte) int64 {
+	return int64(binary.BigEndian.Uint64(bz))
 }
