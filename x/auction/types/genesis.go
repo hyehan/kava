@@ -3,34 +3,65 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
+	"github.com/kava-labs/kava/x/auction/exported"
 )
 
-// DefaultNextAuctionID is the starting poiint for auction IDs.
-const DefaultNextAuctionID uint64 = 1
+// DefaultNextAuctionID is the starting point for auction IDs.
+const DefaultNextAuctionID int64 = 1
 
-// GenesisAuction is an interface that extends the auction interface to add functionality needed for initializing auctions from genesis.
-type GenesisAuction interface {
-	Auction
-	GetModuleAccountCoins() sdk.Coins
-	Validate() error
-}
+var (
+	_ exported.Auction        = &GenesisAuction{}
+	_ exported.GenesisAuction = &GenesisAuction{}
+)
 
-// GenesisAuctions is a slice of genesis auctions.
-type GenesisAuctions []GenesisAuction
+func (a *GenesisAuction) GetBidder() string { return a.GetBidder() }
 
-// GenesisState is auction state that must be provided at chain genesis.
-type GenesisState struct {
-	NextAuctionID uint64          `json:"next_auction_id" yaml:"next_auction_id"`
-	Params        Params          `json:"params" yaml:"params"`
-	Auctions      GenesisAuctions `json:"auctions" yaml:"auctions"`
+func (a *GenesisAuction) GetInitiator() string { return a.GetInitiator() }
+
+func (a *GenesisAuction) GetEndTime() time.Time { return a.GetEndTime() }
+
+func (a *GenesisAuction) GetMaxEndTime() time.Time { return a.GetMaxEndTime() }
+
+func (a *GenesisAuction) GetBid() sdk.Coin { return a.GetBid() }
+
+func (a *GenesisAuction) GetLot() sdk.Coin { return a.GetLot() }
+
+func (a *GenesisAuction) GetId() int64 { return a.GetId() }
+
+func (a *GenesisAuction) WithID(id int64) exported.Auction { return a.WithID(id) }
+
+// GetPhase returns the direction of a surplus auction, which never changes.
+func (a GenesisAuction) GetPhase() string { return a.GetPhase() }
+
+// GetType returns the auction type. Used to identify auctions in event attributes.
+func (a GenesisAuction) GetType() string { return a.GetType() }
+
+func (a *GenesisAuction) GetModuleAccountCoins() sdk.Coins { return a.GetModuleAccountCoins() }
+
+func (a *GenesisAuction) Validate() error { return a.Validate() }
+
+func (a GenesisAuction) String() string {
+	return fmt.Sprintf(`Auction %d:
+  Initiator:              %s
+  Lot:               			%s
+  Bidder:            		  %s
+  Bid:        						%s
+  End Time:   						%s
+  Max End Time:      			%s`,
+		a.GetId(), a.GetInitiator(), a.GetLot(),
+		a.GetBidder(), a.GetBid(), a.GetEndTime().String(),
+		a.GetMaxEndTime().String(),
+	)
 }
 
 // NewGenesisState returns a new genesis state object for auctions module.
-func NewGenesisState(nextID uint64, ap Params, ga GenesisAuctions) GenesisState {
+func NewGenesisState(nextID int64, ap Params, ga []GenesisAuction) GenesisState {
 	return GenesisState{
-		NextAuctionID: nextID,
+		NextAuctionId: nextID,
 		Params:        ap,
 		Auctions:      ga,
 	}
@@ -41,14 +72,14 @@ func DefaultGenesisState() GenesisState {
 	return NewGenesisState(
 		DefaultNextAuctionID,
 		DefaultParams(),
-		GenesisAuctions{},
+		[]GenesisAuction{},
 	)
 }
 
 // Equal checks whether two GenesisState structs are equivalent.
 func (gs GenesisState) Equal(gs2 GenesisState) bool {
-	b1 := ModuleCdc.MustMarshalBinaryBare(gs)
-	b2 := ModuleCdc.MustMarshalBinaryBare(gs2)
+	b1 := ModuleCdc.Amino.MustMarshalBinaryBare(&gs)
+	b2 := ModuleCdc.Amino.MustMarshalBinaryBare(&gs2)
 	return bytes.Equal(b1, b2)
 }
 
@@ -63,20 +94,20 @@ func (gs GenesisState) Validate() error {
 		return err
 	}
 
-	ids := map[uint64]bool{}
+	ids := map[int64]bool{}
 	for _, a := range gs.Auctions {
 
 		if err := a.Validate(); err != nil {
 			return fmt.Errorf("found invalid auction: %w", err)
 		}
 
-		if ids[a.GetID()] {
-			return fmt.Errorf("found duplicate auction ID (%d)", a.GetID())
+		if ids[a.GetId()] {
+			return fmt.Errorf("found duplicate auction ID (%d)", a.GetId())
 		}
-		ids[a.GetID()] = true
+		ids[a.GetId()] = true
 
-		if a.GetID() >= gs.NextAuctionID {
-			return fmt.Errorf("found auction ID ≥ the nextAuctionID (%d ≥ %d)", a.GetID(), gs.NextAuctionID)
+		if a.GetId() >= gs.NextAuctionId {
+			return fmt.Errorf("found auction ID ≥ the nextAuctionID (%d ≥ %d)", a.GetId(), gs.NextAuctionId)
 		}
 	}
 	return nil
