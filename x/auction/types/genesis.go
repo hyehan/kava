@@ -59,7 +59,7 @@ func (a GenesisAuction) String() string {
 }
 
 // NewGenesisState returns a new genesis state object for auctions module.
-func NewGenesisState(nextID int64, ap Params, ga []GenesisAuction) GenesisState {
+func NewGenesisState(nextID int64, ap Params, ga []*GenesisAuction) GenesisState {
 	return GenesisState{
 		NextAuctionId: nextID,
 		Params:        ap,
@@ -72,7 +72,7 @@ func DefaultGenesisState() GenesisState {
 	return NewGenesisState(
 		DefaultNextAuctionID,
 		DefaultParams(),
-		[]GenesisAuction{},
+		[]*GenesisAuction{},
 	)
 }
 
