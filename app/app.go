@@ -3,12 +3,11 @@ package app
 import (
 	"fmt"
 	"io"
-	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/grpc/tmservice"
+	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/codec"
 	"github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/server/api"
@@ -18,7 +17,10 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authante "github.com/cosmos/cosmos-sdk/x/auth/ante"
+	authrest "github.com/cosmos/cosmos-sdk/x/auth/client/rest"
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/auth/vesting"
 	"github.com/cosmos/cosmos-sdk/x/bank"
@@ -58,7 +60,13 @@ import (
 	tmlog "github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/tendermint/tm-db"
 
+	"github.com/kava-labs/kava/app/ante"
 	kavaparams "github.com/kava-labs/kava/app/params"
+
+	"github.com/kava-labs/kava/x/kavadist"
+	kavadistclient "github.com/kava-labs/kava/x/kavadist/client"
+	kavadistkeeper "github.com/kava-labs/kava/x/kavadist/keeper"
+	kavadisttypes "github.com/kava-labs/kava/x/kavadist/types"
 )
 
 const (
@@ -79,12 +87,14 @@ var (
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler,
 			distrclient.ProposalHandler,
+			kavadistclient.ProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
 		slashing.AppModuleBasic{},
 		evidence.AppModuleBasic{},
 		vesting.AppModuleBasic{},
+		kavadist.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -97,19 +107,9 @@ var (
 		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 		govtypes.ModuleName:            {authtypes.Burner},
+		kavadisttypes.KavaDistMacc:     {authtypes.Minter},
 	}
-
-	// DefaultNodeHome is the default home directory for the app binary // TODO would this be better located in cmd?
-	DefaultNodeHome string
 )
-
-func init() {
-	userHomeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Printf("Failed to get home dir %s", err)
-	}
-	DefaultNodeHome = filepath.Join(userHomeDir, ".kava")
-}
 
 // Verify app interface at compile time
 // var _ simapp.App = (*App)(nil) // TODO
@@ -150,6 +150,7 @@ type App struct {
 	crisisKeeper   crisiskeeper.Keeper
 	paramsKeeper   paramskeeper.Keeper
 	evidenceKeeper evidencekeeper.Keeper
+	kavadistKeeper kavadistkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -177,6 +178,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, evidencetypes.StoreKey,
+		kavadisttypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 
@@ -204,6 +206,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 	slashingSubspace := app.paramsKeeper.Subspace(slashingtypes.ModuleName)
 	govSubspace := app.paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	crisisSubspace := app.paramsKeeper.Subspace(crisistypes.ModuleName)
+	kavadistSubspace := app.paramsKeeper.Subspace(kavadisttypes.ModuleName)
 
 	bApp.SetParamStore(
 		app.paramsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(paramskeeper.ConsensusParamsKeyTable()),
@@ -222,7 +225,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		keys[banktypes.StoreKey],
 		app.accountKeeper,
 		bankSubspace,
-		app.ModuleAccountAddrs(), // TODO this no longer allows funds to be sent to the distribution module account for use in the community pool. Is this a problem?
+		app.ModuleAccountAddrs(),
 	)
 	app.stakingKeeper = stakingkeeper.NewKeeper(
 		appCodec,
@@ -273,7 +276,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 	govRouter.
 		AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(app.paramsKeeper)).
-		AddRoute(distrtypes.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.distrKeeper))
+		AddRoute(distrtypes.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.distrKeeper)).AddRoute(kavadisttypes.RouterKey, kavadist.NewCommunityPoolMultiSpendProposalHandler(app.kavadistKeeper))
 	app.govKeeper = govkeeper.NewKeeper(
 		appCodec,
 		keys[govtypes.StoreKey],
@@ -282,6 +285,16 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		app.bankKeeper,
 		&app.stakingKeeper,
 		govRouter,
+	)
+
+	app.kavadistKeeper = kavadistkeeper.NewKeeper(
+		appCodec,
+		keys[kavadisttypes.StoreKey],
+		kavadistSubspace,
+		app.bankKeeper,
+		app.accountKeeper,
+		app.distrKeeper,
+		app.ModuleAccountAddrs(),
 	)
 
 	// register the staking hooks
@@ -304,6 +317,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		staking.NewAppModule(appCodec, app.stakingKeeper, app.accountKeeper, app.bankKeeper),
 		evidence.NewAppModule(app.evidenceKeeper),
 		params.NewAppModule(app.paramsKeeper),
+		kavadist.NewAppModule(app.kavadistKeeper, app.accountKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -336,6 +350,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		crisistypes.ModuleName,  // runs the invariants at genesis - should run after other modules
 		genutiltypes.ModuleName, // genutils must occur after staking so that pools are properly initialized with tokens from genesis accounts.
 		evidencetypes.ModuleName,
+		kavadisttypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.crisisKeeper)
@@ -366,16 +381,25 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 	// TODO mount memory stores
 
 	// initialize the app
+	var fetchers []ante.AddressFetcher // TODO add bep3 and pricefeed authorized addresses
+	if options.MempoolEnableAuth {
+		fetchers = append(fetchers,
+			func(sdk.Context) []sdk.AccAddress { return options.MempoolAuthAddresses },
+		)
+	}
+	antehandler, err := ante.NewAnteHandler(
+		app.accountKeeper,
+		app.bankKeeper,
+		nil,
+		encodingConfig.TxConfig.SignModeHandler(),
+		authante.DefaultSigVerificationGasConsumer,
+		fetchers...,
+	)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create antehandler: %s", err))
+	}
 
-	// TODO antehandler
-	// var antehandler sdk.AnteHandler
-	// if options.MempoolEnableAuth {
-	// 	var getAuthorizedAddresses ante.AddressFetcher = func(sdk.Context) []sdk.AccAddress { return options.MempoolAuthAddresses }
-	// 	antehandler = ante.NewAnteHandler(app.accountKeeper, app.accountKeeper, auth.DefaultSigVerificationGasConsumer, getAuthorizedAddresses)
-	// } else {
-	// 	antehandler = ante.NewAnteHandler(app.accountKeeper, app.accountKeeper, auth.DefaultSigVerificationGasConsumer)
-	// }
-	// app.SetAnteHandler(antehandler)
+	app.SetAnteHandler(antehandler)
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetEndBlocker(app.EndBlocker)
@@ -427,22 +451,6 @@ func (app *App) ModuleAccountAddrs() map[string]bool {
 	return modAccAddrs
 }
 
-// LegacyAmino returns the app's amino codec.
-//
-// NOTE: This is solely to be used for testing purposes as it may be desirable
-// for modules to register their own custom testing types. // TODO move to TestApp
-func (app *App) LegacyAmino() *codec.LegacyAmino {
-	return app.legacyAmino
-}
-
-// AppCodec returns the app's app codec.
-//
-// NOTE: This is solely to be used for testing purposes as it may be desirable
-// for modules to register their own custom testing types. // TODO move to TestApp
-func (app *App) AppCodec() codec.Codec {
-	return app.appCodec
-}
-
 // InterfaceRegistry returns the app's InterfaceRegistry.
 func (app *App) InterfaceRegistry() types.InterfaceRegistry {
 	return app.interfaceRegistry
@@ -453,20 +461,37 @@ func (app *App) SimulationManager() *module.SimulationManager {
 	return app.sm
 }
 
-// RegisterAPIRoutes registers all application module routes with the provided
-// API server.
+// RegisterAPIRoutes registers all application module routes with the provided API server.
 func (app *App) RegisterAPIRoutes(apiSvr *api.Server, apiConfig config.APIConfig) {
-	// TODO
+	clientCtx := apiSvr.ClientCtx
+
+	// Register legacy REST routes
+	rpc.RegisterRoutes(clientCtx, apiSvr.Router)
+	authrest.RegisterTxRoutes(clientCtx, apiSvr.Router)
+	ModuleBasics.RegisterRESTRoutes(clientCtx, apiSvr.Router)
+
+	// Register GRPC Gateway routes
+	tmservice.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+	authtx.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+	ModuleBasics.RegisterGRPCGatewayRoutes(clientCtx, apiSvr.GRPCGatewayRouter)
+
+	// register swagger API from root so that other applications can override easily
+	if apiConfig.Swagger {
+		// TODO where should old and new swagger docs be served? Should files be embedded in the binary?
+		panic("TODO: register swagger in app")
+	}
 }
 
 // RegisterTxService implements the Application.RegisterTxService method.
+// It registers transaction related endpoints on the app's grpc server.
 func (app *App) RegisterTxService(clientCtx client.Context) {
-	// TODO
+	authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
 }
 
 // RegisterTendermintService implements the Application.RegisterTendermintService method.
+// It registers the standard tendermint grpc endpoints on the app's grpc server.
 func (app *App) RegisterTendermintService(clientCtx client.Context) {
-	// TODO
+	tmservice.RegisterTendermintService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.interfaceRegistry)
 }
 
 // GetMaccPerms returns a mapping of the application's module account permissions.
