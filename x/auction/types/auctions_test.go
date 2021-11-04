@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/kava-labs/kava/x/auction/exported"
 )
 
 const (
@@ -24,9 +23,6 @@ const (
 	testAccAddress1         = "kava1qcfdf69js922qrdr4yaww3ax7gjml6pd39p8lj"
 	testAccAddress2         = "kava1pdfav2cjhry9k79nu6r8kgknnjtq6a7rcr0qlr"
 )
-
-// SurplusAuction contains only the base auction types without additional fields
-type BaseAuction = SurplusAuction
 
 func init() {
 	sdk.GetConfig().SetBech32PrefixForAccount("kava", "kava"+sdk.PrefixPublic)
@@ -104,12 +100,12 @@ func TestBaseAuctionValidate(t *testing.T) {
 
 	tests := []struct {
 		msg     string
-		auction exported.Auction
+		auction BaseAuction
 		expPass bool
 	}{
 		{
 			"valid auction",
-			&BaseAuction{
+			BaseAuction{
 				Id:              1,
 				Initiator:       testAccAddress1,
 				Lot:             c("kava", 1),
@@ -123,7 +119,7 @@ func TestBaseAuctionValidate(t *testing.T) {
 		},
 		{
 			"blank initiator",
-			&BaseAuction{
+			BaseAuction{
 				Id:        1,
 				Initiator: "",
 			},
@@ -131,7 +127,7 @@ func TestBaseAuctionValidate(t *testing.T) {
 		},
 		{
 			"invalid lot",
-			&BaseAuction{
+			BaseAuction{
 				Id:        1,
 				Initiator: testAccAddress1,
 				Lot:       sdk.Coin{Denom: "DENOM", Amount: sdk.NewInt(1)},
@@ -140,7 +136,7 @@ func TestBaseAuctionValidate(t *testing.T) {
 		},
 		{
 			"empty bidder",
-			&BaseAuction{
+			BaseAuction{
 				Id:        1,
 				Initiator: testAccAddress1,
 				Lot:       c("kava", 1),
@@ -150,7 +146,7 @@ func TestBaseAuctionValidate(t *testing.T) {
 		},
 		{
 			"invalid bidder",
-			&BaseAuction{
+			BaseAuction{
 				Id:        1,
 				Initiator: testAccAddress1,
 				Lot:       c("kava", 1),
@@ -160,7 +156,7 @@ func TestBaseAuctionValidate(t *testing.T) {
 		},
 		{
 			"invalid bid",
-			&BaseAuction{
+			BaseAuction{
 				Id:        1,
 				Initiator: testAccAddress1,
 				Lot:       c("kava", 1),
@@ -171,7 +167,7 @@ func TestBaseAuctionValidate(t *testing.T) {
 		},
 		{
 			"invalid end time",
-			&BaseAuction{
+			BaseAuction{
 				Id:        1,
 				Initiator: testAccAddress1,
 				Lot:       c("kava", 1),
@@ -183,7 +179,7 @@ func TestBaseAuctionValidate(t *testing.T) {
 		},
 		{
 			"max end time > endtime",
-			&BaseAuction{
+			BaseAuction{
 				Id:         1,
 				Initiator:  testAccAddress1,
 				Lot:        c("kava", 1),
@@ -198,7 +194,7 @@ func TestBaseAuctionValidate(t *testing.T) {
 
 	for _, tc := range tests {
 
-		err := ValidateAuction(tc.auction)
+		err := ValidateBaseAuction(tc.auction)
 		if tc.expPass {
 			require.NoError(t, err, tc.msg)
 		} else {
@@ -221,14 +217,16 @@ func TestDebtAuctionValidate(t *testing.T) {
 		{
 			"valid auction",
 			DebtAuction{
-				Id:                1,
-				Initiator:         testAccAddress1,
-				Lot:               c("kava", 1),
-				Bidder:            addr1.String(),
-				Bid:               c("kava", 1),
-				EndTime:           now,
-				MaxEndTime:        now,
-				HasReceivedBids:   true,
+				BaseAuction: &BaseAuction{
+					Id:              1,
+					Initiator:       testAccAddress1,
+					Lot:             c("kava", 1),
+					Bidder:          addr1.String(),
+					Bid:             c("kava", 1),
+					EndTime:         now,
+					MaxEndTime:      now,
+					HasReceivedBids: true,
+				},
 				CorrespondingDebt: c("kava", 1),
 			},
 			true,
@@ -236,14 +234,16 @@ func TestDebtAuctionValidate(t *testing.T) {
 		{
 			"invalid corresponding debt",
 			DebtAuction{
-				Id:                1,
-				Initiator:         testAccAddress1,
-				Lot:               c("kava", 1),
-				Bidder:            addr1.String(),
-				Bid:               c("kava", 1),
-				EndTime:           now,
-				MaxEndTime:        now,
-				HasReceivedBids:   true,
+				BaseAuction: &BaseAuction{
+					Id:              1,
+					Initiator:       testAccAddress1,
+					Lot:             c("kava", 1),
+					Bidder:          addr1.String(),
+					Bid:             c("kava", 1),
+					EndTime:         now,
+					MaxEndTime:      now,
+					HasReceivedBids: true,
+				},
 				CorrespondingDebt: sdk.Coin{Denom: "", Amount: sdk.NewInt(1)},
 			},
 			false,
@@ -276,14 +276,16 @@ func TestCollateralAuctionValidate(t *testing.T) {
 		{
 			"valid auction",
 			CollateralAuction{
-				Id:                1,
-				Initiator:         testAccAddress1,
-				Lot:               c("kava", 1),
-				Bidder:            addr1.String(),
-				Bid:               c("kava", 1),
-				EndTime:           now,
-				MaxEndTime:        now,
-				HasReceivedBids:   true,
+				BaseAuction: &BaseAuction{
+					Id:              1,
+					Initiator:       testAccAddress1,
+					Lot:             c("kava", 1),
+					Bidder:          addr1.String(),
+					Bid:             c("kava", 1),
+					EndTime:         now,
+					MaxEndTime:      now,
+					HasReceivedBids: true,
+				},
 				CorrespondingDebt: c("kava", 1),
 				MaxBid:            c("kava", 1),
 				LotReturns: WeightedAddresses{
@@ -296,14 +298,16 @@ func TestCollateralAuctionValidate(t *testing.T) {
 		{
 			"invalid corresponding debt",
 			CollateralAuction{
-				Id:                1,
-				Initiator:         testAccAddress1,
-				Lot:               c("kava", 1),
-				Bidder:            addr1.String(),
-				Bid:               c("kava", 1),
-				EndTime:           now,
-				MaxEndTime:        now,
-				HasReceivedBids:   true,
+				BaseAuction: &BaseAuction{
+					Id:              1,
+					Initiator:       testAccAddress1,
+					Lot:             c("kava", 1),
+					Bidder:          addr1.String(),
+					Bid:             c("kava", 1),
+					EndTime:         now,
+					MaxEndTime:      now,
+					HasReceivedBids: true,
+				},
 				CorrespondingDebt: sdk.Coin{Denom: "DENOM", Amount: sdk.NewInt(1)},
 			},
 			false,
@@ -311,14 +315,16 @@ func TestCollateralAuctionValidate(t *testing.T) {
 		{
 			"invalid max bid",
 			CollateralAuction{
-				Id:                1,
-				Initiator:         testAccAddress1,
-				Lot:               c("kava", 1),
-				Bidder:            addr1.String(),
-				Bid:               c("kava", 1),
-				EndTime:           now,
-				MaxEndTime:        now,
-				HasReceivedBids:   true,
+				BaseAuction: &BaseAuction{
+					Id:              1,
+					Initiator:       testAccAddress1,
+					Lot:             c("kava", 1),
+					Bidder:          addr1.String(),
+					Bid:             c("kava", 1),
+					EndTime:         now,
+					MaxEndTime:      now,
+					HasReceivedBids: true,
+				},
 				CorrespondingDebt: c("kava", 1),
 				MaxBid:            sdk.Coin{Denom: "DENOM", Amount: sdk.NewInt(1)},
 			},
@@ -327,14 +333,16 @@ func TestCollateralAuctionValidate(t *testing.T) {
 		{
 			"invalid lot returns",
 			CollateralAuction{
-				Id:                1,
-				Initiator:         testAccAddress1,
-				Lot:               c("kava", 1),
-				Bidder:            addr1.String(),
-				Bid:               c("kava", 1),
-				EndTime:           now,
-				MaxEndTime:        now,
-				HasReceivedBids:   true,
+				BaseAuction: &BaseAuction{
+					Id:              1,
+					Initiator:       testAccAddress1,
+					Lot:             c("kava", 1),
+					Bidder:          addr1.String(),
+					Bid:             c("kava", 1),
+					EndTime:         now,
+					MaxEndTime:      now,
+					HasReceivedBids: true,
+				},
 				CorrespondingDebt: c("kava", 1),
 				MaxBid:            c("kava", 1),
 				LotReturns: WeightedAddresses{

@@ -8,8 +8,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-
-	"github.com/kava-labs/kava/x/auction/exported"
+	"github.com/gogo/protobuf/proto"
 )
 
 const (
@@ -26,18 +25,69 @@ const (
 var DistantFuture = time.Date(9000, 1, 1, 0, 0, 0, 0, time.UTC)
 
 var (
-	_ exported.Auction        = &SurplusAuction{}
-	_ exported.GenesisAuction = &SurplusAuction{}
-	_ exported.Auction        = &DebtAuction{}
-	_ exported.GenesisAuction = &DebtAuction{}
-	_ exported.Auction        = &CollateralAuction{}
-	_ exported.GenesisAuction = &CollateralAuction{}
+	_ Auction        = &SurplusAuction{}
+	_ GenesisAuction = &SurplusAuction{}
+	_ Auction        = &DebtAuction{}
+	_ GenesisAuction = &DebtAuction{}
+	_ Auction        = &CollateralAuction{}
+	_ GenesisAuction = &CollateralAuction{}
 )
 
 // --------------- Shared auction functionality ---------------
 
+// Auction is an interface for handling common actions on auctions.
+type Auction interface {
+	proto.Message
+
+	GetId() int64
+	WithID(int64) Auction
+
+	GetInitiator() string
+	GetLot() sdk.Coin
+	GetBidder() string
+	GetBid() sdk.Coin
+	GetEndTime() time.Time
+	GetMaxEndTime() time.Time
+
+	GetType() string
+	GetPhase() string
+}
+
+// --------------- BaseAuction ---------------
+
+func (a *BaseAuction) GetBid() sdk.Coin { return a.Bid }
+
+func (a *BaseAuction) GetLot() sdk.Coin { return a.Lot }
+
+// ValidateBaseAuction verifies that the auction end time is before max end time
+func ValidateBaseAuction(a BaseAuction) error {
+	// ID can be 0 for surplus, debt and collateral auctions
+	if strings.TrimSpace(a.Initiator) == "" {
+		return errors.New("auction initiator cannot be blank")
+	}
+	if !a.Lot.IsValid() {
+		return fmt.Errorf("invalid lot: %s", a.Lot)
+	}
+	// NOTE: bidder can be empty for Surplus and Collateral auctions
+	_, err := sdk.AccAddressFromBech32(a.Bidder)
+	if a.Bidder != "" && err != nil {
+		return fmt.Errorf("invalid bidder address %s", a.Bidder)
+	}
+	if !a.Bid.IsValid() {
+		return fmt.Errorf("invalid bid: %s", a.Bid)
+	}
+	if a.EndTime.Unix() <= 0 || a.MaxEndTime.Unix() <= 0 {
+		return errors.New("end time cannot be zero")
+	}
+	if a.EndTime.After(a.MaxEndTime) {
+		return fmt.Errorf("MaxEndTime < EndTime (%s < %s)", a.MaxEndTime, a.EndTime)
+	}
+	return nil
+}
+
+// TODO: reconcile with ValidateBaseAuction
 // ValidateAuction verifies that the auction end time is before max end time
-func ValidateAuction(a exported.Auction) error {
+func ValidateAuction(a Auction) error {
 	// ID can be 0 for surplus, debt and collateral auctions
 	if strings.TrimSpace(a.GetInitiator()) == "" {
 		return errors.New("auction initiator cannot be blank")
@@ -66,23 +116,21 @@ func ValidateAuction(a exported.Auction) error {
 // NewSurplusAuction returns a new surplus auction.
 func NewSurplusAuction(seller string, lot sdk.Coin, bidDenom string, endTime time.Time) SurplusAuction {
 	auction := SurplusAuction{
-		// no ID
-		Initiator:       seller,
-		Lot:             lot,
-		Bidder:          "",
-		Bid:             sdk.NewInt64Coin(bidDenom, 0),
-		HasReceivedBids: false, // new auctions don't have any bids
-		EndTime:         endTime,
-		MaxEndTime:      endTime,
+		BaseAuction: &BaseAuction{
+			// No Id
+			Initiator:       seller,
+			Lot:             lot,
+			Bidder:          "",
+			Bid:             sdk.NewInt64Coin(bidDenom, 0),
+			HasReceivedBids: false, // new auctions don't have any bids
+			EndTime:         endTime,
+			MaxEndTime:      endTime,
+		},
 	}
 	return auction
 }
 
-func (a *SurplusAuction) GetBid() sdk.Coin { return a.Bid }
-
-func (a *SurplusAuction) GetLot() sdk.Coin { return a.Lot }
-
-func (a *SurplusAuction) WithID(id int64) exported.Auction { a.Id = id; return a }
+func (a *SurplusAuction) WithID(id int64) Auction { a.Id = id; return a }
 
 // GetPhase returns the direction of a surplus auction, which never changes.
 func (a SurplusAuction) GetPhase() string { return ForwardAuctionPhase }
@@ -108,24 +156,22 @@ func NewDebtAuction(buyerModAccName string, bid sdk.Coin, initialLot sdk.Coin, e
 	// Setting to the module account address bypasses calling supply.SendCoinsFromModuleToModule, instead calls SendCoinsFromModuleToAccount.
 	// This isn't a problem currently, but if additional logic/validation was added for sending to coins to Module Accounts, it would be bypassed.
 	auction := DebtAuction{
-		// no ID
-		Initiator:         buyerModAccName,
-		Lot:               initialLot,
-		Bidder:            authtypes.NewModuleAddress(buyerModAccName).String(), // send proceeds from the first bid to the buyer.
-		Bid:               bid,                                                  // amount that the buyer is buying - doesn't change over course of auction
-		HasReceivedBids:   false,                                                // new auctions don't have any bids
-		EndTime:           endTime,
-		MaxEndTime:        endTime,
+		BaseAuction: &BaseAuction{
+			// no ID
+			Initiator:       buyerModAccName,
+			Lot:             initialLot,
+			Bidder:          authtypes.NewModuleAddress(buyerModAccName).String(), // send proceeds from the first bid to the buyer.
+			Bid:             bid,                                                  // amount that the buyer is buying - doesn't change over course of auction
+			HasReceivedBids: false,                                                // new auctions don't have any bids
+			EndTime:         endTime,
+			MaxEndTime:      endTime,
+		},
 		CorrespondingDebt: debt,
 	}
 	return auction
 }
 
-func (a *DebtAuction) GetBid() sdk.Coin { return a.Bid }
-
-func (a *DebtAuction) GetLot() sdk.Coin { return a.Lot }
-
-func (a *DebtAuction) WithID(id int64) exported.Auction { a.Id = id; return a }
+func (a *DebtAuction) WithID(id int64) Auction { a.Id = id; return a }
 
 // GetPhase returns the direction of a debt auction, which never changes.
 func (a DebtAuction) GetPhase() string { return ReverseAuctionPhase }
@@ -153,14 +199,16 @@ func (a DebtAuction) Validate() error {
 // NewCollateralAuction returns a new collateral auction.
 func NewCollateralAuction(seller string, lot sdk.Coin, endTime time.Time, maxBid sdk.Coin, lotReturns WeightedAddresses, debt sdk.Coin) CollateralAuction {
 	auction := CollateralAuction{
-		// no ID
-		Initiator:         seller,
-		Lot:               lot,
-		Bidder:            "",
-		Bid:               sdk.NewInt64Coin(maxBid.Denom, 0),
-		HasReceivedBids:   false, // new auctions don't have any bids
-		EndTime:           endTime,
-		MaxEndTime:        endTime,
+		BaseAuction: &BaseAuction{
+			// no ID
+			Initiator:       seller,
+			Lot:             lot,
+			Bidder:          "",
+			Bid:             sdk.NewInt64Coin(maxBid.Denom, 0),
+			HasReceivedBids: false, // new auctions don't have any bids
+			EndTime:         endTime,
+			MaxEndTime:      endTime,
+		},
 		CorrespondingDebt: debt,
 		MaxBid:            maxBid,
 		LotReturns:        lotReturns,
@@ -168,11 +216,7 @@ func NewCollateralAuction(seller string, lot sdk.Coin, endTime time.Time, maxBid
 	return auction
 }
 
-func (a *CollateralAuction) GetBid() sdk.Coin { return a.Bid }
-
-func (a *CollateralAuction) GetLot() sdk.Coin { return a.Lot }
-
-func (a *CollateralAuction) WithID(id int64) exported.Auction { a.Id = id; return a }
+func (a *CollateralAuction) WithID(id int64) Auction { a.Id = id; return a }
 
 // GetType returns the auction type. Used to identify auctions in event attributes.
 func (a CollateralAuction) GetType() string { return CollateralAuctionType }
