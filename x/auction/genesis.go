@@ -5,7 +5,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
-	"github.com/kava-labs/kava/x/auction/exported"
 	"github.com/kava-labs/kava/x/auction/keeper"
 	"github.com/kava-labs/kava/x/auction/types"
 )
@@ -21,8 +20,13 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, bankKeeper types.BankKee
 	keeper.SetParams(ctx, gs.Params)
 
 	totalAuctionCoins := sdk.NewCoins()
-	for _, a := range gs.Auctions {
-		keeper.SetAuction(ctx, &a)
+
+	auctions, err := types.UnpackGenesisAuctions(gs.Auctions)
+	if err != nil {
+		panic(fmt.Sprintf("failed to unpack genesis auctions: %s", err))
+	}
+	for _, a := range auctions {
+		keeper.SetAuction(ctx, a)
 		// find the total coins that should be present in the module account
 		totalAuctionCoins = totalAuctionCoins.Add(a.GetModuleAccountCoins()...)
 	}
@@ -43,7 +47,7 @@ func InitGenesis(ctx sdk.Context, keeper keeper.Keeper, bankKeeper types.BankKee
 }
 
 // ExportGenesis returns a GenesisState for a given context and keeper.
-func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) types.GenesisState {
+func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) *types.GenesisState {
 	nextAuctionID, err := keeper.GetNextAuctionID(ctx)
 	if err != nil {
 		panic(err)
@@ -51,9 +55,9 @@ func ExportGenesis(ctx sdk.Context, keeper keeper.Keeper) types.GenesisState {
 
 	params := keeper.GetParams(ctx)
 
-	genAuctions := []*types.GenesisAuction{} // return empty list instead of nil if no auctions
-	keeper.IterateAuctions(ctx, func(a exported.Auction) bool {
-		ga, ok := a.(*types.GenesisAuction)
+	genAuctions := []types.GenesisAuction{} // return empty list instead of nil if no auctions
+	keeper.IterateAuctions(ctx, func(a types.Auction) bool {
+		ga, ok := a.(types.GenesisAuction)
 		if !ok {
 			panic("could not convert stored auction to GenesisAuction type")
 		}

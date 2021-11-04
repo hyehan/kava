@@ -44,7 +44,7 @@ func (AppModuleBasic) RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 // DefaultGenesis default genesis state
 func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
 	gs := types.DefaultGenesisState()
-	return cdc.MustMarshalJSON(&gs)
+	return cdc.MustMarshalJSON(gs)
 }
 
 // ValidateGenesis module validate genesis
@@ -149,7 +149,7 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, gs json.Ra
 // ExportGenesis module export genesis
 func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
 	gs := ExportGenesis(ctx, am.keeper)
-	return cdc.MustMarshalJSON(&gs)
+	return cdc.MustMarshalJSON(gs)
 }
 
 // BeginBlock module begin-block
