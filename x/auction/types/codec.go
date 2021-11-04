@@ -7,8 +7,6 @@ import (
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
-
-	"github.com/kava-labs/kava/x/auction/exported"
 )
 
 // RegisterLegacyAminoCodec registers all the necessary types and interfaces for the
@@ -16,8 +14,8 @@ import (
 func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
 	cdc.RegisterConcrete(&MsgPlaceBid{}, "auction/MsgPlaceBid", nil)
 
-	cdc.RegisterInterface((*exported.GenesisAuction)(nil), nil)
-	cdc.RegisterInterface((*exported.Auction)(nil), nil)
+	cdc.RegisterInterface((*GenesisAuction)(nil), nil)
+	cdc.RegisterInterface((*Auction)(nil), nil)
 	cdc.RegisterConcrete(&SurplusAuction{}, "auction/SurplusAuction", nil)
 	cdc.RegisterConcrete(&DebtAuction{}, "auction/DebtAuction", nil)
 	cdc.RegisterConcrete(&CollateralAuction{}, "auction/CollateralAuction", nil)
