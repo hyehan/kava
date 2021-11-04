@@ -3,76 +3,74 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"time"
 
+	types "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-
-	"github.com/kava-labs/kava/x/auction/exported"
+	proto "github.com/gogo/protobuf/proto"
 )
 
 // DefaultNextAuctionID is the starting point for auction IDs.
 const DefaultNextAuctionID int64 = 1
 
-var (
-	_ exported.Auction        = &GenesisAuction{}
-	_ exported.GenesisAuction = &GenesisAuction{}
-)
+// GenesisAuction extends the auction interface to add functionality
+// needed for initializing auctions from genesis.
+type GenesisAuction interface {
+	Auction
+	GetModuleAccountCoins() sdk.Coins
+	Validate() error
+}
 
-func (a *GenesisAuction) GetBidder() string { return a.GetBidder() }
+// PackGenesisAuctions converts a GenesisAuction slice to Any slice
+func PackGenesisAuctions(ga []GenesisAuction) ([]*types.Any, error) {
+	gaAny := make([]*types.Any, len(ga))
+	for i, genesisAuction := range ga {
+		msg, ok := genesisAuction.(proto.Message)
+		if !ok {
+			return nil, fmt.Errorf("cannot proto marshal %T", genesisAuction)
+		}
+		any, err := types.NewAnyWithValue(msg)
+		if err != nil {
+			return nil, err
+		}
+		gaAny[i] = any
+	}
 
-func (a *GenesisAuction) GetInitiator() string { return a.GetInitiator() }
+	return gaAny, nil
+}
 
-func (a *GenesisAuction) GetEndTime() time.Time { return a.GetEndTime() }
+// UnpackGenesisAuctions converts Any slice to GenesisAuctions slice
+func UnpackGenesisAuctions(genesisAuctionsAny []*types.Any) ([]GenesisAuction, error) {
+	genesisAuctions := make([]GenesisAuction, len(genesisAuctionsAny))
+	for i, any := range genesisAuctionsAny {
+		genesisAuction, ok := any.GetCachedValue().(GenesisAuction)
+		if !ok {
+			return nil, fmt.Errorf("expected genesis auction")
+		}
+		genesisAuctions[i] = genesisAuction
+	}
 
-func (a *GenesisAuction) GetMaxEndTime() time.Time { return a.GetMaxEndTime() }
-
-func (a *GenesisAuction) GetBid() sdk.Coin { return a.GetBid() }
-
-func (a *GenesisAuction) GetLot() sdk.Coin { return a.GetLot() }
-
-func (a *GenesisAuction) GetId() int64 { return a.GetId() }
-
-func (a *GenesisAuction) WithID(id int64) exported.Auction { return a.WithID(id) }
-
-// GetPhase returns the direction of a surplus auction, which never changes.
-func (a GenesisAuction) GetPhase() string { return a.GetPhase() }
-
-// GetType returns the auction type. Used to identify auctions in event attributes.
-func (a GenesisAuction) GetType() string { return a.GetType() }
-
-func (a *GenesisAuction) GetModuleAccountCoins() sdk.Coins { return a.GetModuleAccountCoins() }
-
-func (a *GenesisAuction) Validate() error { return a.Validate() }
-
-func (a GenesisAuction) String() string {
-	return fmt.Sprintf(`Auction %d:
-  Initiator:              %s
-  Lot:               			%s
-  Bidder:            		  %s
-  Bid:        						%s
-  End Time:   						%s
-  Max End Time:      			%s`,
-		a.GetId(), a.GetInitiator(), a.GetLot(),
-		a.GetBidder(), a.GetBid(), a.GetEndTime().String(),
-		a.GetMaxEndTime().String(),
-	)
+	return genesisAuctions, nil
 }
 
 // NewGenesisState returns a new genesis state object for auctions module.
-func NewGenesisState(nextID int64, ap Params, ga []*GenesisAuction) GenesisState {
-	return GenesisState{
+func NewGenesisState(nextID int64, ap Params, ga []GenesisAuction) *GenesisState {
+	packedGA, err := PackGenesisAuctions(ga)
+	if err != nil {
+		panic(err)
+	}
+	return &GenesisState{
 		NextAuctionId: nextID,
 		Params:        ap,
-		Auctions:      ga,
+		Auctions:      packedGA,
 	}
 }
 
 // DefaultGenesisState returns the default genesis state for auction module.
-func DefaultGenesisState() GenesisState {
+func DefaultGenesisState() *GenesisState {
 	return NewGenesisState(
 		DefaultNextAuctionID,
 		DefaultParams(),
-		[]*GenesisAuction{},
+		[]GenesisAuction{},
 	)
 }
 
@@ -94,8 +92,13 @@ func (gs GenesisState) Validate() error {
 		return err
 	}
 
+	auctions, err := UnpackGenesisAuctions(gs.Auctions)
+	if err != nil {
+		return err
+	}
+
 	ids := map[int64]bool{}
-	for _, a := range gs.Auctions {
+	for _, a := range auctions {
 
 		if err := a.Validate(); err != nil {
 			return fmt.Errorf("found invalid auction: %w", err)
