@@ -103,7 +103,7 @@ BaseAuction defines common attributes of all auctions
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `id` | [int64](#int64) |  |  |
+| `id` | [uint64](#uint64) |  |  |
 | `initiator` | [string](#string) |  |  |
 | `lot` | [bytes](#bytes) |  |  |
 | `bidder` | [string](#string) |  |  |
@@ -213,7 +213,7 @@ GenesisState defines the auction module's genesis state.
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `next_auction_id` | [int64](#int64) |  | TODO: uint64 |
+| `next_auction_id` | [uint64](#uint64) |  |  |
 | `params` | [Params](#kava.auction.v1beta1.Params) |  |  |
 | `auctions` | [google.protobuf.Any](#google.protobuf.Any) | repeated | Genesis auctions |
 
@@ -340,7 +340,7 @@ QueryNextAuctionIDResponse defines the response type for querying x/auction next
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `id` | [int64](#int64) |  |  |
+| `id` | [uint64](#uint64) |  |  |
 
 
 
@@ -409,7 +409,7 @@ MsgPlaceBid represents a message used by bidders to place bids on auctions
 
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
-| `auction_id` | [int64](#int64) |  |  |
+| `auction_id` | [uint64](#uint64) |  |  |
 | `bidder` | [string](#string) |  |  |
 | `amount` | [bytes](#bytes) |  |  |
 

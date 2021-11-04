@@ -12,7 +12,7 @@ import (
 var _ sdk.Msg = &MsgPlaceBid{}
 
 // NewMsgPlaceBid returns a new MsgPlaceBid.
-func NewMsgPlaceBid(auctionID int64, bidder string, amt sdk.Coin) MsgPlaceBid {
+func NewMsgPlaceBid(auctionID uint64, bidder string, amt sdk.Coin) MsgPlaceBid {
 	return MsgPlaceBid{
 		AuctionId: auctionID,
 		Bidder:    bidder,

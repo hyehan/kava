@@ -39,8 +39,8 @@ var (
 type Auction interface {
 	proto.Message
 
-	GetId() int64
-	WithID(int64) Auction
+	GetId() uint64
+	WithID(uint64) Auction
 
 	GetInitiator() string
 	GetLot() sdk.Coin
@@ -116,7 +116,7 @@ func ValidateAuction(a Auction) error {
 // NewSurplusAuction returns a new surplus auction.
 func NewSurplusAuction(seller string, lot sdk.Coin, bidDenom string, endTime time.Time) SurplusAuction {
 	auction := SurplusAuction{
-		BaseAuction: &BaseAuction{
+		BaseAuction: BaseAuction{
 			// No Id
 			Initiator:       seller,
 			Lot:             lot,
@@ -130,7 +130,7 @@ func NewSurplusAuction(seller string, lot sdk.Coin, bidDenom string, endTime tim
 	return auction
 }
 
-func (a *SurplusAuction) WithID(id int64) Auction { a.Id = id; return a }
+func (a *SurplusAuction) WithID(id uint64) Auction { a.Id = id; return a }
 
 // GetPhase returns the direction of a surplus auction, which never changes.
 func (a SurplusAuction) GetPhase() string { return ForwardAuctionPhase }
@@ -156,7 +156,7 @@ func NewDebtAuction(buyerModAccName string, bid sdk.Coin, initialLot sdk.Coin, e
 	// Setting to the module account address bypasses calling supply.SendCoinsFromModuleToModule, instead calls SendCoinsFromModuleToAccount.
 	// This isn't a problem currently, but if additional logic/validation was added for sending to coins to Module Accounts, it would be bypassed.
 	auction := DebtAuction{
-		BaseAuction: &BaseAuction{
+		BaseAuction: BaseAuction{
 			// no ID
 			Initiator:       buyerModAccName,
 			Lot:             initialLot,
@@ -171,7 +171,7 @@ func NewDebtAuction(buyerModAccName string, bid sdk.Coin, initialLot sdk.Coin, e
 	return auction
 }
 
-func (a *DebtAuction) WithID(id int64) Auction { a.Id = id; return a }
+func (a *DebtAuction) WithID(id uint64) Auction { a.Id = id; return a }
 
 // GetPhase returns the direction of a debt auction, which never changes.
 func (a DebtAuction) GetPhase() string { return ReverseAuctionPhase }
@@ -199,7 +199,7 @@ func (a DebtAuction) Validate() error {
 // NewCollateralAuction returns a new collateral auction.
 func NewCollateralAuction(seller string, lot sdk.Coin, endTime time.Time, maxBid sdk.Coin, lotReturns WeightedAddresses, debt sdk.Coin) CollateralAuction {
 	auction := CollateralAuction{
-		BaseAuction: &BaseAuction{
+		BaseAuction: BaseAuction{
 			// no ID
 			Initiator:       seller,
 			Lot:             lot,
@@ -216,7 +216,7 @@ func NewCollateralAuction(seller string, lot sdk.Coin, endTime time.Time, maxBid
 	return auction
 }
 
-func (a *CollateralAuction) WithID(id int64) Auction { a.Id = id; return a }
+func (a *CollateralAuction) WithID(id uint64) Auction { a.Id = id; return a }
 
 // GetType returns the auction type. Used to identify auctions in event attributes.
 func (a CollateralAuction) GetType() string { return CollateralAuctionType }

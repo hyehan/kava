@@ -45,7 +45,7 @@ message QueryAuctionRequest {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  string auction_id = 1 [(gogoproto.moretags) = "yaml:\"auction_id,omitempty\""];
+  string auction_id = 1;
 }
 
 // QueryAuctionResponse is the response type for the Query/Auction RPC method.
@@ -58,10 +58,10 @@ message QueryAuctionsRequest {
   option (gogoproto.equal)           = false;
   option (gogoproto.goproto_getters) = false;
 
-  string type  = 1 [(gogoproto.moretags) = "yaml:\"type,omitempty\""];
-  string owner = 2 [(gogoproto.moretags) = "yaml:\"owner,omitempty\""];
-  string denom = 3 [(gogoproto.moretags) = "yaml:\"denom,omitempty\""];
-  string phase = 4 [(gogoproto.moretags) = "yaml:\"phase,omitempty\""];
+  string type  = 1;
+  string owner = 2;
+  string denom = 3;
+  string phase = 4;
 
   // pagination defines an optional pagination for the request.
   cosmos.base.query.v1beta1.PageRequest pagination = 5;
@@ -80,5 +80,5 @@ message QueryNextAuctionIDRequest {}
 
 // QueryNextAuctionIDResponse defines the response type for querying x/auction next auction ID.
 message QueryNextAuctionIDResponse {
-  int64 id = 1;
+  uint64 id = 1;
 }

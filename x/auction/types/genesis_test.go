@@ -19,7 +19,7 @@ func TestGenesisState_Validate(t *testing.T) {
 
 	testCases := []struct {
 		name       string
-		nextID     int64
+		nextID     uint64
 		auctions   []GenesisAuction
 		expectPass bool
 	}{
@@ -33,7 +33,7 @@ func TestGenesisState_Validate(t *testing.T) {
 			"invalid next ID",
 			54,
 			[]GenesisAuction{
-				GenesisAuction(&SurplusAuction{&BaseAuction{Id: 105}}),
+				GenesisAuction(&SurplusAuction{BaseAuction{Id: 105}}),
 			},
 			false,
 		},
@@ -41,8 +41,8 @@ func TestGenesisState_Validate(t *testing.T) {
 			"repeated ID",
 			1000,
 			[]GenesisAuction{
-				GenesisAuction(&SurplusAuction{&BaseAuction{Id: 105}}),
-				GenesisAuction(&DebtAuction{&BaseAuction{Id: 106}, testCoin}),
+				GenesisAuction(&SurplusAuction{BaseAuction{Id: 105}}),
+				GenesisAuction(&DebtAuction{BaseAuction{Id: 106}, testCoin}),
 			},
 			false,
 		},

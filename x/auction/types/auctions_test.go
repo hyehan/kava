@@ -217,7 +217,7 @@ func TestDebtAuctionValidate(t *testing.T) {
 		{
 			"valid auction",
 			DebtAuction{
-				BaseAuction: &BaseAuction{
+				BaseAuction: BaseAuction{
 					Id:              1,
 					Initiator:       testAccAddress1,
 					Lot:             c("kava", 1),
@@ -234,7 +234,7 @@ func TestDebtAuctionValidate(t *testing.T) {
 		{
 			"invalid corresponding debt",
 			DebtAuction{
-				BaseAuction: &BaseAuction{
+				BaseAuction: BaseAuction{
 					Id:              1,
 					Initiator:       testAccAddress1,
 					Lot:             c("kava", 1),
@@ -276,7 +276,7 @@ func TestCollateralAuctionValidate(t *testing.T) {
 		{
 			"valid auction",
 			CollateralAuction{
-				BaseAuction: &BaseAuction{
+				BaseAuction: BaseAuction{
 					Id:              1,
 					Initiator:       testAccAddress1,
 					Lot:             c("kava", 1),
@@ -298,7 +298,7 @@ func TestCollateralAuctionValidate(t *testing.T) {
 		{
 			"invalid corresponding debt",
 			CollateralAuction{
-				BaseAuction: &BaseAuction{
+				BaseAuction: BaseAuction{
 					Id:              1,
 					Initiator:       testAccAddress1,
 					Lot:             c("kava", 1),
@@ -315,7 +315,7 @@ func TestCollateralAuctionValidate(t *testing.T) {
 		{
 			"invalid max bid",
 			CollateralAuction{
-				BaseAuction: &BaseAuction{
+				BaseAuction: BaseAuction{
 					Id:              1,
 					Initiator:       testAccAddress1,
 					Lot:             c("kava", 1),
@@ -333,7 +333,7 @@ func TestCollateralAuctionValidate(t *testing.T) {
 		{
 			"invalid lot returns",
 			CollateralAuction{
-				BaseAuction: &BaseAuction{
+				BaseAuction: BaseAuction{
 					Id:              1,
 					Initiator:       testAccAddress1,
 					Lot:             c("kava", 1),

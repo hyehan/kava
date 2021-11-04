@@ -10,7 +10,7 @@ import (
 )
 
 // DefaultNextAuctionID is the starting point for auction IDs.
-const DefaultNextAuctionID int64 = 1
+const DefaultNextAuctionID uint64 = 1
 
 // GenesisAuction extends the auction interface to add functionality
 // needed for initializing auctions from genesis.
@@ -53,7 +53,7 @@ func UnpackGenesisAuctions(genesisAuctionsAny []*types.Any) ([]GenesisAuction, e
 }
 
 // NewGenesisState returns a new genesis state object for auctions module.
-func NewGenesisState(nextID int64, ap Params, ga []GenesisAuction) *GenesisState {
+func NewGenesisState(nextID uint64, ap Params, ga []GenesisAuction) *GenesisState {
 	packedGA, err := PackGenesisAuctions(ga)
 	if err != nil {
 		panic(err)
@@ -97,7 +97,7 @@ func (gs GenesisState) Validate() error {
 		return err
 	}
 
-	ids := map[int64]bool{}
+	ids := map[uint64]bool{}
 	for _, a := range auctions {
 
 		if err := a.Validate(); err != nil {
