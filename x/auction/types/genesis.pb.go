@@ -10,6 +10,7 @@ import (
 	_ "github.com/gogo/protobuf/gogoproto"
 	proto "github.com/gogo/protobuf/proto"
 	github_com_gogo_protobuf_types "github.com/gogo/protobuf/types"
+	_ "github.com/regen-network/cosmos-proto"
 	_ "google.golang.org/protobuf/types/known/durationpb"
 	io "io"
 	math "math"
@@ -29,73 +30,20 @@ var _ = time.Kitchen
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// Params defines the parameters for the issuance module.
-type Params struct {
-	MaxAuctionDuration  time.Duration                          `protobuf:"bytes,1,opt,name=max_auction_duration,json=maxAuctionDuration,proto3,stdduration" json:"max_auction_duration" yaml:"max_auction_duration,omitempty"`
-	BidDuration         time.Duration                          `protobuf:"bytes,2,opt,name=bid_duration,json=bidDuration,proto3,stdduration" json:"bid_duration" yaml:"bid_duration,omitempty"`
-	IncrementSurplus    github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,3,opt,name=increment_surplus,json=incrementSurplus,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"increment_surplus,omitempty" yaml:"increment_surplus"`
-	IncrementDebt       github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,4,opt,name=increment_debt,json=incrementDebt,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"increment_debt,omitempty" yaml:"increment_debt"`
-	IncrementCollateral github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,5,opt,name=increment_collateral,json=incrementCollateral,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"increment_collateral,omitempty" yaml:"increment_collateral"`
-}
-
-func (m *Params) Reset()      { *m = Params{} }
-func (*Params) ProtoMessage() {}
-func (*Params) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d0e5cb58293042f7, []int{0}
-}
-func (m *Params) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *Params) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_Params.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *Params) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Params.Merge(m, src)
-}
-func (m *Params) XXX_Size() int {
-	return m.Size()
-}
-func (m *Params) XXX_DiscardUnknown() {
-	xxx_messageInfo_Params.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Params proto.InternalMessageInfo
-
-func (m *Params) GetMaxAuctionDuration() time.Duration {
-	if m != nil {
-		return m.MaxAuctionDuration
-	}
-	return 0
-}
-
-func (m *Params) GetBidDuration() time.Duration {
-	if m != nil {
-		return m.BidDuration
-	}
-	return 0
-}
-
 // GenesisState defines the auction module's genesis state.
 type GenesisState struct {
-	NextAuctionId int64             `protobuf:"varint,1,opt,name=next_auction_id,json=nextAuctionId,proto3" json:"next_auction_id,omitempty" yaml:"next_auction_id,omitempty"`
-	Params        Params            `protobuf:"bytes,2,opt,name=params,proto3" json:"params"`
-	Auctions      []*GenesisAuction `protobuf:"bytes,3,rep,name=auctions,proto3" json:"auctions,omitempty" yaml:"auctions,omitempty"`
+	// TODO: uint64
+	NextAuctionId int64  `protobuf:"varint,1,opt,name=next_auction_id,json=nextAuctionId,proto3" json:"next_auction_id,omitempty" yaml:"next_auction_id,omitempty"`
+	Params        Params `protobuf:"bytes,2,opt,name=params,proto3" json:"params"`
+	// Genesis auctions
+	Auctions []*types.Any `protobuf:"bytes,3,rep,name=auctions,proto3" json:"auctions,omitempty"`
 }
 
 func (m *GenesisState) Reset()         { *m = GenesisState{} }
 func (m *GenesisState) String() string { return proto.CompactTextString(m) }
 func (*GenesisState) ProtoMessage()    {}
 func (*GenesisState) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d0e5cb58293042f7, []int{1}
+	return fileDescriptor_d0e5cb58293042f7, []int{0}
 }
 func (m *GenesisState) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -138,29 +86,33 @@ func (m *GenesisState) GetParams() Params {
 	return Params{}
 }
 
-func (m *GenesisState) GetAuctions() []*GenesisAuction {
+func (m *GenesisState) GetAuctions() []*types.Any {
 	if m != nil {
 		return m.Auctions
 	}
 	return nil
 }
 
-// GenesisAuction is a genesis auction
-type GenesisAuction struct {
-	Auction []*types.Any `protobuf:"bytes,1,rep,name=auction,proto3" json:"auction,omitempty"`
+// Params defines the parameters for the issuance module.
+type Params struct {
+	MaxAuctionDuration  time.Duration                          `protobuf:"bytes,1,opt,name=max_auction_duration,json=maxAuctionDuration,proto3,stdduration" json:"max_auction_duration" yaml:"max_auction_duration,omitempty"`
+	BidDuration         time.Duration                          `protobuf:"bytes,2,opt,name=bid_duration,json=bidDuration,proto3,stdduration" json:"bid_duration" yaml:"bid_duration,omitempty"`
+	IncrementSurplus    github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,3,opt,name=increment_surplus,json=incrementSurplus,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"increment_surplus,omitempty" yaml:"increment_surplus"`
+	IncrementDebt       github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,4,opt,name=increment_debt,json=incrementDebt,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"increment_debt,omitempty" yaml:"increment_debt"`
+	IncrementCollateral github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,5,opt,name=increment_collateral,json=incrementCollateral,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"increment_collateral,omitempty" yaml:"increment_collateral"`
 }
 
-func (m *GenesisAuction) Reset()      { *m = GenesisAuction{} }
-func (*GenesisAuction) ProtoMessage() {}
-func (*GenesisAuction) Descriptor() ([]byte, []int) {
-	return fileDescriptor_d0e5cb58293042f7, []int{2}
+func (m *Params) Reset()      { *m = Params{} }
+func (*Params) ProtoMessage() {}
+func (*Params) Descriptor() ([]byte, []int) {
+	return fileDescriptor_d0e5cb58293042f7, []int{1}
 }
-func (m *GenesisAuction) XXX_Unmarshal(b []byte) error {
+func (m *Params) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
 }
-func (m *GenesisAuction) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+func (m *Params) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	if deterministic {
-		return xxx_messageInfo_GenesisAuction.Marshal(b, m, deterministic)
+		return xxx_messageInfo_Params.Marshal(b, m, deterministic)
 	} else {
 		b = b[:cap(b)]
 		n, err := m.MarshalToSizedBuffer(b)
@@ -170,29 +122,35 @@ func (m *GenesisAuction) XXX_Marshal(b []byte, deterministic bool) ([]byte, erro
 		return b[:n], nil
 	}
 }
-func (m *GenesisAuction) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_GenesisAuction.Merge(m, src)
+func (m *Params) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Params.Merge(m, src)
 }
-func (m *GenesisAuction) XXX_Size() int {
+func (m *Params) XXX_Size() int {
 	return m.Size()
 }
-func (m *GenesisAuction) XXX_DiscardUnknown() {
-	xxx_messageInfo_GenesisAuction.DiscardUnknown(m)
+func (m *Params) XXX_DiscardUnknown() {
+	xxx_messageInfo_Params.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_GenesisAuction proto.InternalMessageInfo
+var xxx_messageInfo_Params proto.InternalMessageInfo
 
-func (m *GenesisAuction) GetAuction() []*types.Any {
+func (m *Params) GetMaxAuctionDuration() time.Duration {
 	if m != nil {
-		return m.Auction
+		return m.MaxAuctionDuration
 	}
-	return nil
+	return 0
+}
+
+func (m *Params) GetBidDuration() time.Duration {
+	if m != nil {
+		return m.BidDuration
+	}
+	return 0
 }
 
 func init() {
-	proto.RegisterType((*Params)(nil), "kava.auction.v1beta1.Params")
 	proto.RegisterType((*GenesisState)(nil), "kava.auction.v1beta1.GenesisState")
-	proto.RegisterType((*GenesisAuction)(nil), "kava.auction.v1beta1.GenesisAuction")
+	proto.RegisterType((*Params)(nil), "kava.auction.v1beta1.Params")
 }
 
 func init() {
@@ -200,113 +158,43 @@ func init() {
 }
 
 var fileDescriptor_d0e5cb58293042f7 = []byte{
-	// 579 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x94, 0x3f, 0x6f, 0xd3, 0x40,
-	0x18, 0xc6, 0x73, 0xf4, 0x0f, 0xe8, 0x92, 0x16, 0x30, 0x41, 0x72, 0x5a, 0x6a, 0x47, 0x56, 0x41,
-	0xa9, 0x44, 0xcf, 0x4a, 0xd9, 0xb2, 0xd5, 0x8d, 0x40, 0x48, 0x0c, 0xc8, 0xdd, 0x58, 0xa2, 0xb3,
-	0x7d, 0x18, 0xab, 0xb6, 0x2f, 0xb2, 0xcf, 0x55, 0xb2, 0xf0, 0x01, 0x98, 0x98, 0x50, 0x47, 0xc4,
-	0x47, 0x61, 0xea, 0xd8, 0x11, 0x31, 0x18, 0x94, 0x6c, 0x8c, 0xd9, 0xd8, 0x90, 0xef, 0x2e, 0xce,
-	0x5f, 0x09, 0x75, 0x8a, 0xf3, 0xde, 0xef, 0x7d, 0x9e, 0x47, 0xbe, 0xf7, 0x35, 0x34, 0x2e, 0xf0,
-	0x25, 0x36, 0x71, 0xe6, 0xb2, 0x80, 0xc6, 0xe6, 0x65, 0xdb, 0x21, 0x0c, 0xb7, 0x4d, 0x9f, 0xc4,
-	0x24, 0x0d, 0x52, 0xd4, 0x4f, 0x28, 0xa3, 0x4a, 0xbd, 0x60, 0x90, 0x64, 0x90, 0x64, 0xf6, 0xea,
-	0x3e, 0xf5, 0x29, 0x07, 0xcc, 0xe2, 0x49, 0xb0, 0x7b, 0x0d, 0x9f, 0x52, 0x3f, 0x24, 0x26, 0xff,
-	0xe7, 0x64, 0xef, 0x4d, 0x1c, 0x0f, 0xe5, 0x91, 0xb6, 0x7c, 0xe4, 0x65, 0x09, 0xe6, 0x92, 0xbc,
-	0x62, 0x7c, 0xdf, 0x82, 0xdb, 0x6f, 0x71, 0x82, 0xa3, 0x54, 0xf9, 0x08, 0xeb, 0x11, 0x1e, 0xf4,
-	0xa4, 0x65, 0x6f, 0x0a, 0xaa, 0xa0, 0x09, 0x5a, 0xd5, 0x93, 0x06, 0x12, 0x4a, 0x68, 0xaa, 0x84,
-	0xba, 0x12, 0xb0, 0xda, 0xd7, 0xb9, 0x5e, 0x99, 0xe4, 0xfa, 0xd3, 0x21, 0x8e, 0xc2, 0x8e, 0xb1,
-	0x4e, 0xe4, 0x39, 0x8d, 0x02, 0x46, 0xa2, 0x3e, 0x1b, 0x1a, 0x57, 0xbf, 0x74, 0x60, 0x2b, 0x11,
-	0x1e, 0x9c, 0x0a, 0x66, 0x2a, 0xa3, 0xf8, 0xb0, 0xe6, 0x04, 0xde, 0xcc, 0xf7, 0xce, 0xff, 0x7c,
-	0x8f, 0xa4, 0xef, 0x81, 0xf0, 0x9d, 0x6f, 0x5e, 0xf6, 0xab, 0x3a, 0x81, 0x57, 0x1a, 0x7d, 0x01,
-	0xf0, 0x61, 0x10, 0xbb, 0x09, 0x89, 0x48, 0xcc, 0x7a, 0x69, 0x96, 0xf4, 0xc3, 0x2c, 0x55, 0x37,
-	0x9a, 0xa0, 0x55, 0xb3, 0x82, 0x42, 0xf3, 0x67, 0xae, 0x3f, 0xf3, 0x03, 0xf6, 0x21, 0x73, 0x90,
-	0x4b, 0x23, 0xd3, 0xa5, 0x69, 0x44, 0x53, 0xf9, 0x73, 0x9c, 0x7a, 0x17, 0x26, 0x1b, 0xf6, 0x49,
-	0x8a, 0xba, 0xc4, 0xfd, 0x93, 0xeb, 0xfb, 0x2b, 0x52, 0x33, 0xf3, 0x49, 0xae, 0xab, 0x22, 0xdc,
-	0x0a, 0x64, 0xd8, 0x0f, 0xca, 0xda, 0xb9, 0x28, 0x29, 0x9f, 0x00, 0xdc, 0x9d, 0x81, 0x1e, 0x71,
-	0x98, 0xba, 0xc9, 0x53, 0xb9, 0xb7, 0x4e, 0xa5, 0x2e, 0xea, 0x2c, 0x44, 0x7a, 0xbc, 0x1c, 0xa9,
-	0x20, 0x0c, 0x7b, 0xa7, 0x2c, 0x74, 0x89, 0xc3, 0x94, 0x6f, 0x00, 0xd6, 0x67, 0x88, 0x4b, 0xc3,
-	0x10, 0x33, 0x92, 0xe0, 0x50, 0xdd, 0xe2, 0x91, 0xe8, 0xad, 0x23, 0x69, 0xeb, 0xd4, 0x16, 0x82,
-	0xed, 0x2f, 0x07, 0x9b, 0x71, 0x86, 0xfd, 0xa8, 0x2c, 0x9f, 0x95, 0xd5, 0xce, 0xe6, 0xd5, 0x57,
-	0xbd, 0x62, 0xfc, 0x05, 0xb0, 0xf6, 0x4a, 0x6c, 0xcf, 0x39, 0xc3, 0x8c, 0x28, 0x6f, 0xe0, 0xfd,
-	0x98, 0x0c, 0x58, 0x39, 0x86, 0x81, 0xc7, 0xa7, 0x78, 0xc3, 0x3a, 0x9c, 0xe4, 0x7a, 0x53, 0xb8,
-	0x2c, 0x01, 0x73, 0x13, 0x63, 0xef, 0x14, 0x67, 0x72, 0x3c, 0x5f, 0x7b, 0x4a, 0x07, 0x6e, 0xf7,
-	0xf9, 0x8a, 0xc8, 0x91, 0x7c, 0x82, 0xd6, 0xed, 0x26, 0x12, 0x6b, 0x64, 0x6d, 0x16, 0x2f, 0xc6,
-	0x96, 0x1d, 0x4a, 0x0f, 0xde, 0x93, 0x5c, 0x31, 0x61, 0x1b, 0xad, 0xea, 0xc9, 0xe1, 0xfa, 0x6e,
-	0x99, 0x5f, 0xba, 0x5a, 0x07, 0x93, 0x5c, 0x6f, 0x88, 0xa0, 0xd3, 0xfe, 0xf9, 0x84, 0xa5, 0xa8,
-	0xf1, 0x12, 0xee, 0x2e, 0xb6, 0x2a, 0x08, 0xde, 0x95, 0xa7, 0x2a, 0xe0, 0x8e, 0xf5, 0x95, 0x15,
-	0x3a, 0x8d, 0x87, 0xf6, 0x14, 0x12, 0xef, 0xd0, 0x3a, 0xbb, 0x1e, 0x69, 0xe0, 0x66, 0xa4, 0x81,
-	0xdf, 0x23, 0x0d, 0x7c, 0x1e, 0x6b, 0x95, 0x9b, 0xb1, 0x56, 0xf9, 0x31, 0xd6, 0x2a, 0xef, 0x8e,
-	0xe6, 0x6e, 0xb8, 0x88, 0x7e, 0x1c, 0x62, 0x27, 0xe5, 0x4f, 0xe6, 0xa0, 0xfc, 0x88, 0xf1, 0x8b,
-	0x76, 0xb6, 0xb9, 0xc3, 0x8b, 0x7f, 0x01, 0x00, 0x00, 0xff, 0xff, 0xc3, 0xaf, 0x9b, 0xe3, 0xe1,
-	0x04, 0x00, 0x00,
-}
-
-func (m *Params) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *Params) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	{
-		size := m.IncrementCollateral.Size()
-		i -= size
-		if _, err := m.IncrementCollateral.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGenesis(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x2a
-	{
-		size := m.IncrementDebt.Size()
-		i -= size
-		if _, err := m.IncrementDebt.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGenesis(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x22
-	{
-		size := m.IncrementSurplus.Size()
-		i -= size
-		if _, err := m.IncrementSurplus.MarshalTo(dAtA[i:]); err != nil {
-			return 0, err
-		}
-		i = encodeVarintGenesis(dAtA, i, uint64(size))
-	}
-	i--
-	dAtA[i] = 0x1a
-	n1, err1 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.BidDuration, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.BidDuration):])
-	if err1 != nil {
-		return 0, err1
-	}
-	i -= n1
-	i = encodeVarintGenesis(dAtA, i, uint64(n1))
-	i--
-	dAtA[i] = 0x12
-	n2, err2 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxAuctionDuration, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxAuctionDuration):])
-	if err2 != nil {
-		return 0, err2
-	}
-	i -= n2
-	i = encodeVarintGenesis(dAtA, i, uint64(n2))
-	i--
-	dAtA[i] = 0xa
-	return len(dAtA) - i, nil
+	// 565 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x94, 0xb1, 0x6e, 0xd3, 0x40,
+	0x18, 0xc7, 0x73, 0x6d, 0x1a, 0xa1, 0x4b, 0x5a, 0xc0, 0x04, 0xc9, 0x6d, 0xc1, 0x8e, 0x2c, 0x40,
+	0xa9, 0x44, 0x6c, 0x25, 0x6c, 0xd9, 0xea, 0x46, 0x42, 0x48, 0x0c, 0xc8, 0xdd, 0x58, 0xa2, 0xb3,
+	0x7d, 0x18, 0xab, 0xb6, 0x2f, 0xb2, 0xcf, 0x55, 0xb2, 0xf0, 0x00, 0x4c, 0x4c, 0xa8, 0x23, 0xe2,
+	0x19, 0x78, 0x02, 0xa6, 0x8a, 0xa9, 0x23, 0x62, 0x30, 0x28, 0xd9, 0x18, 0xf3, 0x04, 0xc8, 0x77,
+	0x17, 0x27, 0x71, 0x22, 0xa1, 0x4e, 0xb1, 0xbf, 0xef, 0xff, 0xfd, 0xff, 0xbf, 0xef, 0x74, 0x31,
+	0xd4, 0x2e, 0xd0, 0x25, 0x32, 0x50, 0xea, 0x50, 0x9f, 0x44, 0xc6, 0x65, 0xd7, 0xc6, 0x14, 0x75,
+	0x0d, 0x0f, 0x47, 0x38, 0xf1, 0x13, 0x7d, 0x14, 0x13, 0x4a, 0xa4, 0x66, 0xae, 0xd1, 0x85, 0x46,
+	0x17, 0x9a, 0xa3, 0xa6, 0x47, 0x3c, 0xc2, 0x04, 0x46, 0xfe, 0xc4, 0xb5, 0x47, 0x87, 0x1e, 0x21,
+	0x5e, 0x80, 0x0d, 0xf6, 0x66, 0xa7, 0xef, 0x0c, 0x14, 0x4d, 0x16, 0x2d, 0x87, 0x24, 0x21, 0x49,
+	0x86, 0x7c, 0x86, 0xbf, 0x88, 0x96, 0x52, 0x9e, 0x72, 0xd3, 0x18, 0xb1, 0x34, 0x56, 0xd1, 0x32,
+	0x00, 0x1b, 0x2f, 0x39, 0xd3, 0x39, 0x45, 0x14, 0x4b, 0xaf, 0xe1, 0xdd, 0x08, 0x8f, 0xe9, 0x50,
+	0x40, 0x0d, 0x7d, 0x57, 0x06, 0x2d, 0xd0, 0xde, 0x35, 0x9f, 0xcc, 0x33, 0xb5, 0x35, 0x41, 0x61,
+	0xd0, 0xd7, 0x4a, 0x82, 0xe7, 0x24, 0xf4, 0x29, 0x0e, 0x47, 0x74, 0xa2, 0x59, 0xfb, 0x79, 0xef,
+	0x94, 0xb7, 0x5e, 0xb9, 0x52, 0x1f, 0xd6, 0x46, 0x28, 0x46, 0x61, 0x22, 0xef, 0xb4, 0x40, 0xbb,
+	0xde, 0x7b, 0xa4, 0x6f, 0xdb, 0x58, 0x7f, 0xc3, 0x34, 0x66, 0xf5, 0x3a, 0x53, 0x2b, 0x96, 0x98,
+	0x90, 0x06, 0xf0, 0x8e, 0xd0, 0x25, 0xf2, 0x6e, 0x6b, 0xb7, 0x5d, 0xef, 0x35, 0x75, 0xbe, 0x8d,
+	0xbe, 0xd8, 0x46, 0x3f, 0x8d, 0x26, 0xa6, 0xf4, 0xe3, 0x5b, 0xe7, 0x40, 0xec, 0x20, 0x92, 0xad,
+	0x62, 0x52, 0xfb, 0xbe, 0x07, 0x6b, 0xdc, 0x5e, 0xfa, 0x00, 0x9b, 0x21, 0x1a, 0x17, 0xe0, 0x8b,
+	0x93, 0x60, 0xfb, 0xd5, 0x7b, 0x87, 0x1b, 0xe6, 0x03, 0x21, 0x30, 0xbb, 0x39, 0xd7, 0x3c, 0x53,
+	0x9f, 0xf2, 0xf5, 0xb7, 0x99, 0xac, 0x9c, 0xc1, 0xd5, 0x6f, 0x15, 0x58, 0x52, 0x88, 0xc6, 0x02,
+	0x66, 0x61, 0x23, 0x79, 0xb0, 0x61, 0xfb, 0xee, 0x32, 0x77, 0xe7, 0x7f, 0xb9, 0x27, 0x22, 0xf7,
+	0x31, 0xcf, 0x5d, 0x1d, 0x2e, 0xe7, 0xd5, 0x6d, 0xdf, 0x2d, 0x82, 0x3e, 0x03, 0x78, 0xdf, 0x8f,
+	0x9c, 0x18, 0x87, 0x38, 0xa2, 0xc3, 0x24, 0x8d, 0x47, 0x41, 0x9a, 0x9f, 0x21, 0x68, 0x37, 0x4c,
+	0x3f, 0xf7, 0xfc, 0x95, 0xa9, 0xcf, 0x3c, 0x9f, 0xbe, 0x4f, 0x6d, 0xdd, 0x21, 0xa1, 0xb8, 0x31,
+	0xe2, 0xa7, 0x93, 0xb8, 0x17, 0x06, 0x9d, 0x8c, 0x70, 0xa2, 0x0f, 0xb0, 0xf3, 0x37, 0x53, 0x8f,
+	0x37, 0xac, 0x96, 0xe1, 0xf3, 0x4c, 0x95, 0x39, 0xdc, 0x86, 0x48, 0xb3, 0xee, 0x15, 0xb5, 0x73,
+	0x5e, 0x92, 0x3e, 0x02, 0x78, 0xb0, 0x14, 0xba, 0xd8, 0xa6, 0x72, 0x95, 0x51, 0x39, 0xb7, 0xa6,
+	0x92, 0xd7, 0x7d, 0xd6, 0x90, 0x1e, 0x96, 0x91, 0x72, 0x85, 0x66, 0xed, 0x17, 0x85, 0x01, 0xb6,
+	0xa9, 0xf4, 0x15, 0xc0, 0xe6, 0x52, 0xe2, 0x90, 0x20, 0x40, 0x14, 0xc7, 0x28, 0x90, 0xf7, 0x18,
+	0x12, 0xb9, 0x35, 0x92, 0xb2, 0xcd, 0x6d, 0x0d, 0xec, 0xb8, 0x0c, 0xb6, 0xd4, 0x69, 0xd6, 0x83,
+	0xa2, 0x7c, 0x56, 0x54, 0xfb, 0xd5, 0xab, 0x2f, 0x6a, 0xc5, 0x3c, 0xbb, 0x9e, 0x2a, 0xe0, 0x66,
+	0xaa, 0x80, 0x3f, 0x53, 0x05, 0x7c, 0x9a, 0x29, 0x95, 0x9b, 0x99, 0x52, 0xf9, 0x39, 0x53, 0x2a,
+	0x6f, 0x4f, 0x56, 0xe8, 0xf2, 0xbf, 0x56, 0x27, 0x40, 0x76, 0xc2, 0x9e, 0x8c, 0x71, 0xf1, 0xf1,
+	0x61, 0x90, 0x76, 0x8d, 0x5d, 0xb0, 0x17, 0xff, 0x02, 0x00, 0x00, 0xff, 0xff, 0xb8, 0xb6, 0x33,
+	0x3c, 0x99, 0x04, 0x00, 0x00,
 }
 
 func (m *GenesisState) Marshal() (dAtA []byte, err error) {
@@ -361,7 +249,7 @@ func (m *GenesisState) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *GenesisAuction) Marshal() (dAtA []byte, err error) {
+func (m *Params) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
 	n, err := m.MarshalToSizedBuffer(dAtA[:size])
@@ -371,30 +259,62 @@ func (m *GenesisAuction) Marshal() (dAtA []byte, err error) {
 	return dAtA[:n], nil
 }
 
-func (m *GenesisAuction) MarshalTo(dAtA []byte) (int, error) {
+func (m *Params) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *GenesisAuction) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *Params) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
 	_ = i
 	var l int
 	_ = l
-	if len(m.Auction) > 0 {
-		for iNdEx := len(m.Auction) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Auction[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintGenesis(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0xa
+	{
+		size := m.IncrementCollateral.Size()
+		i -= size
+		if _, err := m.IncrementCollateral.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
 		}
+		i = encodeVarintGenesis(dAtA, i, uint64(size))
 	}
+	i--
+	dAtA[i] = 0x2a
+	{
+		size := m.IncrementDebt.Size()
+		i -= size
+		if _, err := m.IncrementDebt.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGenesis(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x22
+	{
+		size := m.IncrementSurplus.Size()
+		i -= size
+		if _, err := m.IncrementSurplus.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintGenesis(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x1a
+	n2, err2 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.BidDuration, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.BidDuration):])
+	if err2 != nil {
+		return 0, err2
+	}
+	i -= n2
+	i = encodeVarintGenesis(dAtA, i, uint64(n2))
+	i--
+	dAtA[i] = 0x12
+	n3, err3 := github_com_gogo_protobuf_types.StdDurationMarshalTo(m.MaxAuctionDuration, dAtA[i-github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxAuctionDuration):])
+	if err3 != nil {
+		return 0, err3
+	}
+	i -= n3
+	i = encodeVarintGenesis(dAtA, i, uint64(n3))
+	i--
+	dAtA[i] = 0xa
 	return len(dAtA) - i, nil
 }
 
@@ -409,25 +329,6 @@ func encodeVarintGenesis(dAtA []byte, offset int, v uint64) int {
 	dAtA[offset] = uint8(v)
 	return base
 }
-func (m *Params) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxAuctionDuration)
-	n += 1 + l + sovGenesis(uint64(l))
-	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.BidDuration)
-	n += 1 + l + sovGenesis(uint64(l))
-	l = m.IncrementSurplus.Size()
-	n += 1 + l + sovGenesis(uint64(l))
-	l = m.IncrementDebt.Size()
-	n += 1 + l + sovGenesis(uint64(l))
-	l = m.IncrementCollateral.Size()
-	n += 1 + l + sovGenesis(uint64(l))
-	return n
-}
-
 func (m *GenesisState) Size() (n int) {
 	if m == nil {
 		return 0
@@ -448,18 +349,22 @@ func (m *GenesisState) Size() (n int) {
 	return n
 }
 
-func (m *GenesisAuction) Size() (n int) {
+func (m *Params) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	if len(m.Auction) > 0 {
-		for _, e := range m.Auction {
-			l = e.Size()
-			n += 1 + l + sovGenesis(uint64(l))
-		}
-	}
+	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.MaxAuctionDuration)
+	n += 1 + l + sovGenesis(uint64(l))
+	l = github_com_gogo_protobuf_types.SizeOfStdDuration(m.BidDuration)
+	n += 1 + l + sovGenesis(uint64(l))
+	l = m.IncrementSurplus.Size()
+	n += 1 + l + sovGenesis(uint64(l))
+	l = m.IncrementDebt.Size()
+	n += 1 + l + sovGenesis(uint64(l))
+	l = m.IncrementCollateral.Size()
+	n += 1 + l + sovGenesis(uint64(l))
 	return n
 }
 
@@ -468,6 +373,142 @@ func sovGenesis(x uint64) (n int) {
 }
 func sozGenesis(x uint64) (n int) {
 	return sovGenesis(uint64((x << 1) ^ uint64((int64(x) >> 63))))
+}
+func (m *GenesisState) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGenesis
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GenesisState: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GenesisState: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field NextAuctionId", wireType)
+			}
+			m.NextAuctionId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.NextAuctionId |= int64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Params", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Params.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 3:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Auctions", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGenesis
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Auctions = append(m.Auctions, &types.Any{})
+			if err := m.Auctions[len(m.Auctions)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGenesis(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGenesis
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
 }
 func (m *Params) Unmarshal(dAtA []byte) error {
 	l := len(dAtA)
@@ -660,226 +701,6 @@ func (m *Params) Unmarshal(dAtA []byte) error {
 				return io.ErrUnexpectedEOF
 			}
 			if err := m.IncrementCollateral.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGenesis(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthGenesis
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GenesisState) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGenesis
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GenesisState: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GenesisState: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field NextAuctionId", wireType)
-			}
-			m.NextAuctionId = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenesis
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.NextAuctionId |= int64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Params", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenesis
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthGenesis
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthGenesis
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if err := m.Params.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Auctions", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenesis
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthGenesis
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthGenesis
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Auctions = append(m.Auctions, &GenesisAuction{})
-			if err := m.Auctions[len(m.Auctions)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipGenesis(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthGenesis
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *GenesisAuction) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowGenesis
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: GenesisAuction: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: GenesisAuction: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Auction", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowGenesis
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthGenesis
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthGenesis
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Auction = append(m.Auction, &types.Any{})
-			if err := m.Auction[len(m.Auction)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
 			iNdEx = postIndex
