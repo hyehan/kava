@@ -67,6 +67,10 @@ import (
 	kavadistclient "github.com/kava-labs/kava/x/kavadist/client"
 	kavadistkeeper "github.com/kava-labs/kava/x/kavadist/keeper"
 	kavadisttypes "github.com/kava-labs/kava/x/kavadist/types"
+
+	"github.com/kava-labs/kava/x/auction"
+	auctionkeeper "github.com/kava-labs/kava/x/auction/keeper"
+	auctiontypes "github.com/kava-labs/kava/x/auction/types"
 )
 
 const (
@@ -95,6 +99,7 @@ var (
 		evidence.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		kavadist.AppModuleBasic{},
+		auction.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -108,6 +113,7 @@ var (
 		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
 		govtypes.ModuleName:            {authtypes.Burner},
 		kavadisttypes.KavaDistMacc:     {authtypes.Minter},
+		auctiontypes.ModuleName:        nil,
 	}
 )
 
@@ -151,6 +157,7 @@ type App struct {
 	paramsKeeper   paramskeeper.Keeper
 	evidenceKeeper evidencekeeper.Keeper
 	kavadistKeeper kavadistkeeper.Keeper
+	auctionKeeper  auctionkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -207,6 +214,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 	govSubspace := app.paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	crisisSubspace := app.paramsKeeper.Subspace(crisistypes.ModuleName)
 	kavadistSubspace := app.paramsKeeper.Subspace(kavadisttypes.ModuleName)
+	auctionSubspace := app.paramsKeeper.Subspace(auctiontypes.ModuleName)
 
 	bApp.SetParamStore(
 		app.paramsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(paramskeeper.ConsensusParamsKeyTable()),
@@ -297,6 +305,14 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		app.ModuleAccountAddrs(),
 	)
 
+	app.auctionKeeper = auctionkeeper.NewKeeper(
+		appCodec,
+		keys[auctiontypes.StoreKey],
+		auctionSubspace,
+		app.bankKeeper,
+		app.accountKeeper,
+	)
+
 	// register the staking hooks
 	// NOTE: These keepers are passed by reference above, so they will contain these hooks.
 	app.stakingKeeper = *(app.stakingKeeper.SetHooks(
@@ -318,6 +334,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		evidence.NewAppModule(app.evidenceKeeper),
 		params.NewAppModule(app.paramsKeeper),
 		kavadist.NewAppModule(app.kavadistKeeper, app.accountKeeper),
+		auction.NewAppModule(app.auctionKeeper, app.accountKeeper, app.bankKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -331,6 +348,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		slashingtypes.ModuleName,
 		evidencetypes.ModuleName, // TODO why new evidence and staking begin blockers?
 		stakingtypes.ModuleName,
+		auctiontypes.ModuleName,
 	)
 
 	app.mm.SetOrderEndBlockers(
@@ -350,6 +368,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		crisistypes.ModuleName,  // runs the invariants at genesis - should run after other modules
 		genutiltypes.ModuleName, // genutils must occur after staking so that pools are properly initialized with tokens from genesis accounts.
 		evidencetypes.ModuleName,
+		auctiontypes.ModuleName,
 		kavadisttypes.ModuleName,
 	)
 
