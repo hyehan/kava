@@ -2,13 +2,15 @@ syntax = "proto3";
 package kava.auction.v1beta1;
 
 import "gogoproto/gogo.proto";
+import "cosmos_proto/cosmos.proto";
 import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/kava-labs/kava/x/auction/types";
 
-// SurplusAuction is a forward auction that burns what it receives from bids.
-// It is normally used to sell off excess pegged asset acquired by the CDP system.
-message SurplusAuction {
+// BaseAuction defines common attributes of all auctions
+message BaseAuction {
+  option (cosmos_proto.implements_interface) = "Auction";
+
   int64 id = 1;
 
   string initiator = 2;
@@ -41,42 +43,23 @@ message SurplusAuction {
   ];
 }
 
+// SurplusAuction is a forward auction that burns what it receives from bids.
+// It is normally used to sell off excess pegged asset acquired by the CDP system.
+message SurplusAuction {
+  option (cosmos_proto.implements_interface) = "Auction";
+
+  BaseAuction base_auction = 1 [(gogoproto.embed) = true];
+}
+
 // DebtAuction is a reverse auction that mints what it pays out.
 // It is normally used to acquire pegged asset to cover the CDP system's debts that were not covered by selling
 // collateral.
 message DebtAuction {
-  int64 id = 1;
+  option (cosmos_proto.implements_interface) = "Auction";
 
-  string initiator = 2;
+  BaseAuction base_auction = 1 [(gogoproto.embed) = true];
 
-  bytes lot = 3 [
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin",
-    (gogoproto.nullable)   = false,
-    (gogoproto.jsontag)    = "lot,omitempty",
-    (gogoproto.moretags)   = "yaml:\"lot\""
-  ];
-
-  string bidder = 4;
-
-  bytes bid = 5 [
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin",
-    (gogoproto.nullable)   = false,
-    (gogoproto.jsontag)    = "bid,omitempty",
-    (gogoproto.moretags)   = "yaml:\"bid\""
-  ];
-
-  bool has_received_bids = 6;
-
-  google.protobuf.Timestamp end_time = 7
-      [(gogoproto.nullable) = false, (gogoproto.stdtime) = true, (gogoproto.moretags) = "yaml:\"end_time,omitempty\""];
-
-  google.protobuf.Timestamp max_end_time = 8 [
-    (gogoproto.nullable) = false,
-    (gogoproto.stdtime)  = true,
-    (gogoproto.moretags) = "yaml:\"max_end_time,omitempty\""
-  ];
-
-  bytes corresponding_debt = 9 [
+  bytes corresponding_debt = 2 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin",
     (gogoproto.nullable)   = false,
     (gogoproto.jsontag)    = "corresponding_debt,omitempty",
@@ -90,52 +73,25 @@ message DebtAuction {
 // Unsold Lot is sent to LotReturns, being divided among the addresses by weight.
 // Collateral auctions are normally used to sell off collateral seized from CDPs.
 message CollateralAuction {
-  int64 id = 1;
+  option (cosmos_proto.implements_interface) = "Auction";
 
-  string initiator = 2;
+  BaseAuction base_auction = 1 [(gogoproto.embed) = true];
 
-  bytes lot = 3 [
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin",
-    (gogoproto.nullable)   = false,
-    (gogoproto.jsontag)    = "lot,omitempty",
-    (gogoproto.moretags)   = "yaml:\"lot\""
-  ];
-
-  string bidder = 4;
-
-  bytes bid = 5 [
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin",
-    (gogoproto.nullable)   = false,
-    (gogoproto.jsontag)    = "bid,omitempty",
-    (gogoproto.moretags)   = "yaml:\"bid\""
-  ];
-
-  bool has_received_bids = 6;
-
-  google.protobuf.Timestamp end_time = 7
-      [(gogoproto.nullable) = false, (gogoproto.stdtime) = true, (gogoproto.moretags) = "yaml:\"end_time,omitempty\""];
-
-  google.protobuf.Timestamp max_end_time = 8 [
-    (gogoproto.nullable) = false,
-    (gogoproto.stdtime)  = true,
-    (gogoproto.moretags) = "yaml:\"max_end_time,omitempty\""
-  ];
-
-  bytes corresponding_debt = 9 [
+  bytes corresponding_debt = 2 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin",
     (gogoproto.nullable)   = false,
     (gogoproto.jsontag)    = "corresponding_debt,omitempty",
     (gogoproto.moretags)   = "yaml:\"corresponding_debt\""
   ];
 
-  bytes max_bid = 10 [
+  bytes max_bid = 3 [
     (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin",
     (gogoproto.nullable)   = false,
     (gogoproto.jsontag)    = "max_bid,omitempty",
     (gogoproto.moretags)   = "yaml:\"max_bid\""
   ];
 
-  WeightedAddresses lot_returns = 11
+  WeightedAddresses lot_returns = 4
       [(gogoproto.moretags) = "yaml:\"lot_returns,omitempty\"", (gogoproto.nullable) = false];
 }
 

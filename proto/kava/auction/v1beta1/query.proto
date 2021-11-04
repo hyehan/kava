@@ -25,6 +25,11 @@ service Query {
   rpc Auctions(QueryAuctionsRequest) returns (QueryAuctionsResponse) {
     option (google.api.http).get = "/auction/auctions";
   }
+
+  // NextAuctionID queries the next auction ID
+  rpc NextAuctionID(QueryNextAuctionIDRequest) returns (QueryNextAuctionIDResponse) {
+    option (google.api.http).get = "/auction/next-auction-id";
+  }
 }
 
 // QueryParamsRequest defines the request type for querying x/auction parameters.
@@ -68,4 +73,12 @@ message QueryAuctionsResponse {
 
   // pagination defines the pagination in the response.
   cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+// QueryNextAuctionIDRequest defines the request type for querying x/auction next auction ID.
+message QueryNextAuctionIDRequest {}
+
+// QueryNextAuctionIDResponse defines the response type for querying x/auction next auction ID.
+message QueryNextAuctionIDResponse {
+  int64 id = 1;
 }
