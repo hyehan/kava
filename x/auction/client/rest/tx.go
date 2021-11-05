@@ -42,7 +42,7 @@ func postPlaceBidHandlerFn(cliCtx client.Context) http.HandlerFunc {
 		}
 
 		// Create and return a StdTx
-		msg := types.NewMsgPlaceBid(int64(auctionID), bidderAddr.String(), requestBody.Amount)
+		msg := types.NewMsgPlaceBid(auctionID, bidderAddr.String(), requestBody.Amount)
 		if err := msg.ValidateBasic(); err != nil {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 			return

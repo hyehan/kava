@@ -100,10 +100,10 @@ var (
 		crisis.AppModuleBasic{},
 		slashing.AppModuleBasic{},
 		evidence.AppModuleBasic{},
+		auction.AppModuleBasic{},
 		vesting.AppModuleBasic{},
 		pricefeed.AppModuleBasic{},
 		kavadist.AppModuleBasic{},
-		auction.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -118,6 +118,7 @@ var (
 		govtypes.ModuleName:            {authtypes.Burner},
 		kavadisttypes.KavaDistMacc:     {authtypes.Minter},
 		auctiontypes.ModuleName:        nil,
+		"liquidator":                   {authtypes.Burner, authtypes.Minter}, // TODO: for testing. Import from CDP module once migrated to v44.
 	}
 )
 
@@ -190,7 +191,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, evidencetypes.StoreKey,
-		pricefeedtypes.StoreKey, kavadisttypes.StoreKey,
+		pricefeedtypes.StoreKey, kavadisttypes.StoreKey, auctiontypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 

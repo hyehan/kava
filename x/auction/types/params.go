@@ -14,7 +14,7 @@ var emptyDec = sdk.Dec{}
 // Defaults for auction params
 const (
 	// DefaultMaxAuctionDuration max length of auction
-	DefaultMaxAuctionDuration time.Duration = 2 * 24 * time.Hour
+	DefaultMaxAuctionDuration time.Duration = 2*24*time.Hour + 1
 	// DefaultBidDuration how long an auction gets extended when someone bids
 	DefaultBidDuration time.Duration = 1 * time.Hour
 )

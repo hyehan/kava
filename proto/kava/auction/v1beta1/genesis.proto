@@ -8,6 +8,8 @@ import "google/protobuf/duration.proto";
 
 option go_package = "github.com/kava-labs/kava/x/auction/types";
 
+option (gogoproto.goproto_getters_all) = false;
+
 // GenesisState defines the auction module's genesis state.
 message GenesisState {
   uint64 next_auction_id = 1;

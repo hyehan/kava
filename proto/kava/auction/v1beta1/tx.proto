@@ -20,12 +20,7 @@ message MsgPlaceBid {
 
   string bidder = 2;
 
-  bytes amount = 3 [
-    (gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin",
-    (gogoproto.nullable)   = false,
-    (gogoproto.jsontag)    = "amount,omitempty",
-    (gogoproto.moretags)   = "yaml:\"amount\""
-  ];
+  bytes amount = 3 [(gogoproto.customtype) = "github.com/cosmos/cosmos-sdk/types.Coin", (gogoproto.nullable) = false];
 }
 
 // MsgPlaceBidResponse defines the Msg/PlaceBid response type.

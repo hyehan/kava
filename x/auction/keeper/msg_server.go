@@ -9,13 +9,13 @@ import (
 )
 
 type msgServer struct {
-	Keeper
+	keeper Keeper
 }
 
 // NewMsgServerImpl returns an implementation of the swap MsgServer interface
 // for the provided Keeper.
 func NewMsgServerImpl(keeper Keeper) types.MsgServer {
-	return &msgServer{Keeper: keeper}
+	return &msgServer{keeper: keeper}
 }
 
 var _ types.MsgServer = msgServer{}
@@ -28,7 +28,7 @@ func (k msgServer) PlaceBid(goCtx context.Context, msg *types.MsgPlaceBid) (*typ
 		return nil, err
 	}
 
-	err = k.PlaceBidInternal(ctx, msg.AuctionId, bidder, msg.Amount)
+	err = k.keeper.PlaceBid(ctx, msg.AuctionId, bidder, msg.Amount)
 	if err != nil {
 		return nil, err
 	}

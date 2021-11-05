@@ -9,9 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/cosmos/cosmos-sdk/x/supply"
+
+	// "github.com/cosmos/cosmos-sdk/x/supply"
 
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -192,7 +193,7 @@ func TestAuctionBidding(t *testing.T) {
 			bidArgs{buyer, c("badtoken", 10)},
 			types.ErrInvalidLotDenom,
 			types.DistantFuture,
-			supply.NewModuleAddress(modName),
+			authtypes.NewModuleAddress(modName),
 			c("token2", 100),
 			false,
 			false,
@@ -204,7 +205,7 @@ func TestAuctionBidding(t *testing.T) {
 			bidArgs{buyer, c("token1", 21)},
 			types.ErrLotTooLarge,
 			types.DistantFuture,
-			supply.NewModuleAddress(modName),
+			authtypes.NewModuleAddress(modName),
 			c("token2", 100),
 			false,
 			false,
@@ -216,7 +217,7 @@ func TestAuctionBidding(t *testing.T) {
 			bidArgs{buyer, c("token1", 20)},
 			types.ErrLotTooLarge,
 			types.DistantFuture,
-			supply.NewModuleAddress(modName),
+			authtypes.NewModuleAddress(modName),
 			c("token2", 100),
 			false,
 			false,
@@ -228,7 +229,7 @@ func TestAuctionBidding(t *testing.T) {
 			bidArgs{buyer, c("token1", 58)}, // max lot at default 5% is 57
 			types.ErrLotTooLarge,
 			types.DistantFuture,
-			supply.NewModuleAddress(modName),
+			authtypes.NewModuleAddress(modName),
 			c("token2", 100),
 			false, false,
 		},
@@ -406,16 +407,18 @@ func TestAuctionBidding(t *testing.T) {
 			// Setup test
 			tApp := app.NewTestApp()
 			// Set up seller account
-			sellerAcc := supply.NewEmptyModuleAccount(modName, supply.Minter, supply.Burner)
+			sellerAcc := authtypes.NewEmptyModuleAccount(modName, authtypes.Minter, authtypes.Burner)
+			// sellerAcc.
+
 			require.NoError(t, sellerAcc.SetCoins(cs(c("token1", 1000), c("token2", 1000), c("debt", 1000))))
 			// Initialize genesis accounts
 			tApp.InitializeFromGenesisStates(
-				NewAuthGenStateFromAccs(authexported.GenesisAccounts{
-					auth.NewBaseAccount(buyer, cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
-					auth.NewBaseAccount(secondBuyer, cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
-					auth.NewBaseAccount(collateralAddrs[0], cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
-					auth.NewBaseAccount(collateralAddrs[1], cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
-					auth.NewBaseAccount(collateralAddrs[2], cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
+				NewAuthGenStateFromAccs(authtypes.GenesisAccounts{
+					authtypes.NewBaseAccount(buyer, cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
+					authtypes.NewBaseAccount(secondBuyer, cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
+					authtypes.NewBaseAccount(collateralAddrs[0], cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
+					authtypes.NewBaseAccount(collateralAddrs[1], cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
+					authtypes.NewBaseAccount(collateralAddrs[2], cs(c("token1", 1000), c("token2", 1000)), nil, 0, 0),
 					sellerAcc,
 				}),
 			)

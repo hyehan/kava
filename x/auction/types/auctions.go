@@ -40,7 +40,7 @@ type Auction interface {
 	proto.Message
 
 	GetId() uint64
-	WithID(uint64) Auction
+	WithId(uint64) Auction
 
 	GetInitiator() string
 	GetLot() sdk.Coin
@@ -55,9 +55,19 @@ type Auction interface {
 
 // --------------- BaseAuction ---------------
 
-func (a *BaseAuction) GetBid() sdk.Coin { return a.Bid }
+func (a BaseAuction) GetId() uint64 { return a.Id }
 
-func (a *BaseAuction) GetLot() sdk.Coin { return a.Lot }
+func (a BaseAuction) GetBid() sdk.Coin { return a.Bid }
+
+func (a BaseAuction) GetLot() sdk.Coin { return a.Lot }
+
+func (a BaseAuction) GetBidder() string { return a.Bidder }
+
+func (a BaseAuction) GetInitiator() string { return a.Initiator }
+
+func (a BaseAuction) GetEndTime() time.Time { return a.EndTime }
+
+func (a BaseAuction) GetMaxEndTime() time.Time { return a.MaxEndTime }
 
 // ValidateBaseAuction verifies that the auction end time is before max end time
 func ValidateBaseAuction(a BaseAuction) error {
@@ -130,7 +140,10 @@ func NewSurplusAuction(seller string, lot sdk.Coin, bidDenom string, endTime tim
 	return auction
 }
 
-func (a *SurplusAuction) WithID(id uint64) Auction { a.Id = id; return a }
+func (a SurplusAuction) WithId(id uint64) Auction {
+	a.Id = id
+	return Auction(&a)
+}
 
 // GetPhase returns the direction of a surplus auction, which never changes.
 func (a SurplusAuction) GetPhase() string { return ForwardAuctionPhase }
@@ -171,7 +184,10 @@ func NewDebtAuction(buyerModAccName string, bid sdk.Coin, initialLot sdk.Coin, e
 	return auction
 }
 
-func (a *DebtAuction) WithID(id uint64) Auction { a.Id = id; return a }
+func (a DebtAuction) WithId(id uint64) Auction {
+	a.Id = id
+	return Auction(&a)
+}
 
 // GetPhase returns the direction of a debt auction, which never changes.
 func (a DebtAuction) GetPhase() string { return ReverseAuctionPhase }
@@ -216,7 +232,10 @@ func NewCollateralAuction(seller string, lot sdk.Coin, endTime time.Time, maxBid
 	return auction
 }
 
-func (a *CollateralAuction) WithID(id uint64) Auction { a.Id = id; return a }
+func (a CollateralAuction) WithId(id uint64) Auction {
+	a.Id = id
+	return Auction(&a)
+}
 
 // GetType returns the auction type. Used to identify auctions in event attributes.
 func (a CollateralAuction) GetType() string { return CollateralAuctionType }
@@ -234,6 +253,9 @@ func (a CollateralAuction) GetPhase() string {
 	}
 	return ForwardAuctionPhase
 }
+
+// GetLotReturns returns the auction's lot returns as weighted addresses
+func (a CollateralAuction) GetLotReturns() WeightedAddresses { return a.LotReturns }
 
 // GetModuleAccountCoins returns the total number of coins held in the module account for this auction.
 // It is used in genesis initialize the module account correctly.

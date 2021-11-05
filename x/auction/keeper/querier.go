@@ -1,151 +1,156 @@
 package keeper
 
-// import (
-// 	"github.com/cosmos/cosmos-sdk/client"
-// 	"github.com/cosmos/cosmos-sdk/codec"
-// 	sdk "github.com/cosmos/cosmos-sdk/types"
-// 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-// 	abci "github.com/tendermint/tendermint/abci/types"
+import (
+	"strconv"
 
-// 	"github.com/kava-labs/kava/x/auction/types"
-// )
+	abci "github.com/tendermint/tendermint/abci/types"
 
-// // NewQuerier is the module level router for state queries
-// func NewQuerier(keeper Keeper) sdk.Querier {
-// 	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
-// 		switch path[0] {
-// 		case types.QueryGetAuction:
-// 			return queryAuction(ctx, req, keeper)
-// 		case types.QueryGetAuctions:
-// 			return queryAuctions(ctx, req, keeper)
-// 		case types.QueryGetParams:
-// 			return queryGetParams(ctx, req, keeper)
-// 		case types.QueryNextAuctionID:
-// 			return queryNextAuctionID(ctx, req, keeper)
-// 		default:
-// 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown %s query endpoint", types.ModuleName)
-// 		}
-// 	}
-// }
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 
-// func queryAuction(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-// 	// Decode request
-// 	var requestParams types.QueryAuctionParams
-// 	err := types.ModuleCdc.UnmarshalJSON(req.Data, &requestParams)
-// 	if err != nil {
-// 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
-// 	}
+	"github.com/kava-labs/kava/x/auction/types"
+)
 
-// 	// Lookup auction
-// 	auction, found := keeper.GetAuction(ctx, requestParams.AuctionID)
-// 	if !found {
-// 		return nil, sdkerrors.Wrapf(types.ErrAuctionNotFound, "%d", requestParams.AuctionID)
-// 	}
+// NewQuerier is the module level router for state queries
+func NewQuerier(keeper Keeper, legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
+	return func(ctx sdk.Context, path []string, req abci.RequestQuery) (res []byte, err error) {
+		switch path[0] {
+		case types.QueryGetAuction:
+			return queryAuction(ctx, req, keeper, legacyQuerierCdc)
+		case types.QueryGetAuctions:
+			return queryAuctions(ctx, req, keeper, legacyQuerierCdc)
+		case types.QueryGetParams:
+			return queryGetParams(ctx, req, keeper, legacyQuerierCdc)
+		case types.QueryNextAuctionID:
+			return queryNextAuctionID(ctx, req, keeper, legacyQuerierCdc)
+		default:
+			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown %s query endpoint", types.ModuleName)
+		}
+	}
+}
 
-// 	// Encode results
-// 	bz, err := codec.MarshalJSONIndent(keeper.cdc, auction)
-// 	if err != nil {
-// 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-// 	}
+// query params in the auction store
+func queryGetParams(ctx sdk.Context, req abci.RequestQuery, keeper Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	// Get params
+	params := keeper.GetParams(ctx)
 
-// 	return bz, nil
-// }
+	// Encode results
+	bz, err := codec.MarshalJSONIndent(legacyQuerierCdc, params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
 
-// func queryAuctions(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-// 	var params types.QueryAllAuctionParams
-// 	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
-// 	if err != nil {
-// 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
-// 	}
+	return bz, nil
+}
 
-// 	unfilteredAuctions := keeper.GetAllAuctions(ctx)
-// 	auctions := filterAuctions(ctx, unfilteredAuctions, params)
-// 	if auctions == nil {
-// 		auctions = types.Auctions{}
-// 	}
+func queryAuction(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryAuctionRequest
 
-// 	bz, err := codec.MarshalJSONIndent(keeper.cdc, auctions)
-// 	if err != nil {
-// 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-// 	}
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
 
-// 	return bz, nil
-// }
+	auctionID, err := strconv.ParseUint(params.AuctionId, 10, 64)
+	if err != nil {
+		// return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid auction ID %s", req.AuctionId))
+	}
 
-// // query params in the auction store
-// func queryGetParams(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-// 	// Get params
-// 	params := keeper.GetParams(ctx)
+	auction, ok := k.GetAuction(ctx, auctionID)
+	if !ok {
+		return nil, sdkerrors.Wrap(types.ErrAuctionNotFound, params.AuctionId)
+	}
 
-// 	// Encode results
-// 	bz, err := codec.MarshalJSONIndent(keeper.cdc, params)
-// 	if err != nil {
-// 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-// 	}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, auction)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
 
-// 	return bz, nil
-// }
+	return res, nil
+}
 
-// // filterAuctions retrieves auctions filtered by a given set of params.
-// // If no filters are provided, all auctions will be returned in paginated form.
-// func filterAuctions(ctx sdk.Context, auctions types.Auctions, params types.QueryAllAuctionParams) types.Auctions {
-// 	filteredAuctions := make(types.Auctions, 0, len(auctions))
+func queryAuctions(ctx sdk.Context, req abci.RequestQuery, k Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	var params types.QueryAuctionsRequest
 
-// 	for _, auc := range auctions {
-// 		matchType, matchOwner, matchDenom, matchPhase := true, true, true, true
+	err := legacyQuerierCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
 
-// 		// match auction type (if supplied)
-// 		if len(params.Type) > 0 {
-// 			matchType = auc.GetType() == params.Type
-// 		}
+	unfilteredAuctions := k.GetAllAuctions(ctx)
+	auctions := filterAuctions(ctx, unfilteredAuctions, params, legacyQuerierCdc)
+	if auctions == nil {
+		auctions = []types.Auction{}
+	}
 
-// 		// match auction owner (if supplied)
-// 		if len(params.Owner) > 0 {
-// 			if cAuc, ok := auc.(types.CollateralAuction); ok {
-// 				foundOwnerAddr := false
-// 				for _, addr := range cAuc.GetLotReturns().Addresses {
-// 					if addr.Equals(params.Owner) {
-// 						foundOwnerAddr = true
-// 						break
-// 					}
-// 				}
-// 				if !foundOwnerAddr {
-// 					matchOwner = false
-// 				}
-// 			}
-// 		}
+	res, err := codec.MarshalJSONIndent(legacyQuerierCdc, auctions)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
 
-// 		// match auction denom (if supplied)
-// 		if len(params.Denom) > 0 {
-// 			matchDenom = auc.GetBid().Denom == params.Denom || auc.GetLot().Denom == params.Denom
-// 		}
+	return res, nil
+}
 
-// 		// match auction phase (if supplied)
-// 		if len(params.Phase) > 0 {
-// 			matchPhase = auc.GetPhase() == params.Phase
-// 		}
+func queryNextAuctionID(ctx sdk.Context, req abci.RequestQuery, keeper Keeper, legacyQuerierCdc *codec.LegacyAmino) ([]byte, error) {
+	nextAuctionID, _ := keeper.GetNextAuctionID(ctx)
 
-// 		if matchType && matchOwner && matchDenom && matchPhase {
-// 			filteredAuctions = append(filteredAuctions, auc)
-// 		}
-// 	}
+	bz, err := legacyQuerierCdc.MarshalJSON(nextAuctionID)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+	return bz, nil
+}
 
-// 	start, end := client.Paginate(len(filteredAuctions), params.Page, params.Limit, 100)
-// 	if start < 0 || end < 0 {
-// 		filteredAuctions = types.Auctions{}
-// 	} else {
-// 		filteredAuctions = filteredAuctions[start:end]
-// 	}
+// filterAuctions retrieves auctions filtered by a given set of params.
+// If no filters are provided, all auctions will be returned in paginated form.
+func filterAuctions(ctx sdk.Context, auctions []types.Auction, params types.QueryAuctionsRequest, legacyQuerierCdc *codec.LegacyAmino) []types.Auction {
+	filteredAuctions := make([]types.Auction, 0, len(auctions))
+	for _, auc := range auctions {
+		isMatch := auctionIsMatch(auc, params)
+		if isMatch {
+			filteredAuctions = append(filteredAuctions, auc)
+		}
+	}
+	return filteredAuctions
+}
 
-// 	return filteredAuctions
-// }
+func auctionIsMatch(auc types.Auction, params types.QueryAuctionsRequest) bool {
+	matchType, matchOwner, matchDenom, matchPhase := true, true, true, true
 
-// func queryNextAuctionID(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-// 	nextAuctionID, _ := keeper.GetNextAuctionID(ctx)
+	// match auction type (if supplied)
+	if len(params.Type) > 0 {
+		matchType = auc.GetType() == params.Type
+	}
 
-// 	bz, err := types.ModuleCdc.MarshalJSON(nextAuctionID)
-// 	if err != nil {
-// 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
-// 	}
-// 	return bz, nil
-// }
+	// match auction owner (if supplied)
+	if len(params.Owner) > 0 {
+		if cAuc, ok := auc.(*types.CollateralAuction); ok {
+			foundOwnerAddr := false
+			for _, addr := range cAuc.GetLotReturns().Addresses {
+				if addr == params.Owner {
+					foundOwnerAddr = true
+					break
+				}
+			}
+			if !foundOwnerAddr {
+				matchOwner = false
+			}
+		}
+	}
+
+	// match auction denom (if supplied)
+	if len(params.Denom) > 0 {
+		matchDenom = auc.GetBid().Denom == params.Denom || auc.GetLot().Denom == params.Denom
+	}
+
+	// match auction phase (if supplied)
+	if len(params.Phase) > 0 {
+		matchPhase = auc.GetPhase() == params.Phase
+	}
+
+	if matchType && matchOwner && matchDenom && matchPhase {
+		return true
+	}
+	return false
+}

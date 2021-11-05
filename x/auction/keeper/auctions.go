@@ -10,12 +10,11 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
-	"github.com/kava-labs/kava/x/auction/exported"
 	"github.com/kava-labs/kava/x/auction/types"
 )
 
 // StartSurplusAuction starts a new surplus (forward) auction.
-func (k Keeper) StartSurplusAuction(ctx sdk.Context, seller string, lot sdk.Coin, bidDenom string) (int64, error) {
+func (k Keeper) StartSurplusAuction(ctx sdk.Context, seller string, lot sdk.Coin, bidDenom string) (uint64, error) {
 	auction := types.NewSurplusAuction(
 		seller,
 		lot,
@@ -47,7 +46,7 @@ func (k Keeper) StartSurplusAuction(ctx sdk.Context, seller string, lot sdk.Coin
 }
 
 // StartDebtAuction starts a new debt (reverse) auction.
-func (k Keeper) StartDebtAuction(ctx sdk.Context, buyer string, bid sdk.Coin, initialLot sdk.Coin, debt sdk.Coin) (int64, error) {
+func (k Keeper) StartDebtAuction(ctx sdk.Context, buyer string, bid sdk.Coin, initialLot sdk.Coin, debt sdk.Coin) (uint64, error) {
 
 	auction := types.NewDebtAuction(
 		buyer,
@@ -90,7 +89,7 @@ func (k Keeper) StartDebtAuction(ctx sdk.Context, buyer string, bid sdk.Coin, in
 func (k Keeper) StartCollateralAuction(
 	ctx sdk.Context, seller string, lot, maxBid sdk.Coin,
 	lotReturnAddrs []string, lotReturnWeights []sdk.Int, debt sdk.Coin,
-) (int64, error) {
+) (uint64, error) {
 	weightedAddresses, err := types.NewWeightedAddresses(lotReturnAddrs, lotReturnWeights)
 	if err != nil {
 		return 0, err
@@ -133,7 +132,7 @@ func (k Keeper) StartCollateralAuction(
 }
 
 // PlaceBid places a bid on any auction.
-func (k Keeper) PlaceBidInternal(ctx sdk.Context, auctionID int64, bidder sdk.AccAddress, newAmount sdk.Coin) error {
+func (k Keeper) PlaceBid(ctx sdk.Context, auctionID uint64, bidder sdk.AccAddress, newAmount sdk.Coin) error {
 
 	auction, found := k.GetAuction(ctx, auctionID)
 	if !found {
@@ -148,7 +147,7 @@ func (k Keeper) PlaceBidInternal(ctx sdk.Context, auctionID int64, bidder sdk.Ac
 	// move coins and return updated auction
 	var (
 		err            error
-		updatedAuction exported.Auction
+		updatedAuction types.Auction
 	)
 	switch auctionType := auction.(type) {
 	case *types.SurplusAuction:
@@ -471,7 +470,7 @@ func (k Keeper) PlaceBidDebt(ctx sdk.Context, auction *types.DebtAuction, bidder
 }
 
 // CloseAuction closes an auction and distributes funds to the highest bidder.
-func (k Keeper) CloseAuction(ctx sdk.Context, auctionID int64) error {
+func (k Keeper) CloseAuction(ctx sdk.Context, auctionID uint64) error {
 	auction, found := k.GetAuction(ctx, auctionID)
 	if !found {
 		return sdkerrors.Wrapf(types.ErrAuctionNotFound, "%d", auctionID)
@@ -569,7 +568,7 @@ func (k Keeper) PayoutCollateralAuction(ctx sdk.Context, auction *types.Collater
 // paying out to the highest bidder.
 func (k Keeper) CloseExpiredAuctions(ctx sdk.Context) error {
 	var err error
-	k.IterateAuctionsByTime(ctx, ctx.BlockTime(), func(id int64) (stop bool) {
+	k.IterateAuctionsByTime(ctx, ctx.BlockTime(), func(id uint64) (stop bool) {
 		err = k.CloseAuction(ctx, id)
 		if err != nil && !errors.Is(err, types.ErrAuctionNotFound) {
 			// stop iteration

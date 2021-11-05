@@ -45,7 +45,7 @@ func (k Keeper) Auction(c context.Context, req *types.QueryAuctionRequest) (*typ
 		return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid auction ID %s", req.AuctionId))
 	}
 
-	auction, found := k.GetAuction(ctx, int64(auctionID))
+	auction, found := k.GetAuction(ctx, auctionID)
 	if !found {
 		return &types.QueryAuctionResponse{}, nil
 	}
@@ -72,8 +72,6 @@ func (k Keeper) Auctions(c context.Context, req *types.QueryAuctionsRequest) (*t
 	}
 	ctx := sdk.UnwrapSDKContext(c)
 
-	// k.GetAllEvidence(ctx)
-
 	var auctions []*codectypes.Any
 	auctionStore := prefix.NewStore(ctx.KVStore(k.storeKey), types.AuctionKeyPrefix)
 
@@ -99,8 +97,25 @@ func (k Keeper) Auctions(c context.Context, req *types.QueryAuctionsRequest) (*t
 		return &types.QueryAuctionsResponse{}, err
 	}
 
+	// TODO: AuctionWithPhase
+
 	return &types.QueryAuctionsResponse{
 		Auction:    auctions,
 		Pagination: pageRes,
 	}, nil
+}
+
+// NextAuctionID implements the gRPC service handler for querying x/auction next auction ID.
+func (k Keeper) NextAuctionID(ctx context.Context, req *types.QueryNextAuctionIDRequest) (*types.QueryNextAuctionIDResponse, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "empty request")
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	nextAuctionID, err := k.GetNextAuctionID(sdkCtx)
+	if err != nil {
+		return &types.QueryNextAuctionIDResponse{}, err
+	}
+
+	return &types.QueryNextAuctionIDResponse{Id: nextAuctionID}, nil
 }

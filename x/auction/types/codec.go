@@ -26,6 +26,22 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		&MsgPlaceBid{},
 	)
 
+	registry.RegisterInterface(
+		"kava.auction.v1beta1.Auction",
+		(*Auction)(nil),
+		&SurplusAuction{},
+		&DebtAuction{},
+		&CollateralAuction{},
+	)
+
+	registry.RegisterInterface(
+		"kava.auction.v1beta1.GenesisAuction",
+		(*Auction)(nil),
+		&SurplusAuction{},
+		&DebtAuction{},
+		&CollateralAuction{},
+	)
+
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 

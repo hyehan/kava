@@ -7,6 +7,8 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/kava-labs/kava/x/auction/types";
 
+option (gogoproto.goproto_getters_all) = false;
+
 // BaseAuction defines common attributes of all auctions
 message BaseAuction {
   option (cosmos_proto.implements_interface) = "Auction";

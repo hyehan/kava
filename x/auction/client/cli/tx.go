@@ -11,6 +11,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/version"
 
 	"github.com/kava-labs/kava/x/auction/types"
 )
@@ -46,14 +47,15 @@ func GetCmdPlaceBid() *cobra.Command {
 
 Example:
 $ %s tx %s bid 34 1000usdx --from myKeyName
-`, types.ClientName, types.ModuleName)),
+`, version.AppName, types.ModuleName)),
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := client.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
 
+			// TODO: uint64
 			id, err := strconv.ParseUint(args[0], 10, 64)
 			if err != nil {
 				return fmt.Errorf("auction-id '%s' not a valid uint", args[0])
@@ -64,12 +66,12 @@ $ %s tx %s bid 34 1000usdx --from myKeyName
 				return err
 			}
 
-			msg := types.NewMsgPlaceBid(id, cliCtx.GetFromAddress(), amt)
+			msg := types.NewMsgPlaceBid(id, clientCtx.GetFromAddress().String(), amt)
 			err = msg.ValidateBasic()
 			if err != nil {
 				return err
 			}
-			return tx.GenerateOrBroadcastTxCLI(cliCtx, cmd.Flags(), msg)
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
 		},
 	}
 }

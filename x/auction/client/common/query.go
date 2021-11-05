@@ -10,7 +10,6 @@ import (
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 
-	"github.com/kava-labs/kava/x/auction/exported"
 	"github.com/kava-labs/kava/x/auction/types"
 )
 
@@ -20,7 +19,7 @@ const (
 )
 
 // QueryAuctionByID returns an auction from state if present or falls back to searching old blocks
-func QueryAuctionByID(cliCtx client.Context, cdc *codec.Codec, queryRoute string, auctionID uint64) (exported.Auction, int64, error) {
+func QueryAuctionByID(cliCtx client.Context, cdc *codec.Codec, queryRoute string, auctionID uint64) (types.Auction, int64, error) {
 	bz, err := cliCtx.LegacyAmino.MarshalJSON(types.NewQueryAuctionParams(auctionID))
 	if err != nil {
 		return nil, 0, err
@@ -29,7 +28,7 @@ func QueryAuctionByID(cliCtx client.Context, cdc *codec.Codec, queryRoute string
 	res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryGetAuction), bz)
 
 	if err == nil {
-		var auction exported.Auction
+		var auction types.Auction
 		cliCtx.LegacyAmino.MustUnmarshalJSON(res, &auction)
 
 		return auction, height, nil
@@ -90,7 +89,7 @@ func QueryAuctionByID(cliCtx client.Context, cdc *codec.Codec, queryRoute string
 	}
 
 	// Decode and print results
-	var auction exported.Auction
+	var auction types.Auction
 	cliCtx.LegacyAmino.MustUnmarshalJSON(res, &auction)
 	return auction, height, nil
 }
