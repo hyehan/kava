@@ -62,10 +62,9 @@ import (
 
 	"github.com/kava-labs/kava/app/ante"
 	kavaparams "github.com/kava-labs/kava/app/params"
-	pricefeed "github.com/kava-labs/kava/x/pricefeed"
-	pricefeedkeeper "github.com/kava-labs/kava/x/pricefeed/keeper"
-	pricefeedtypes "github.com/kava-labs/kava/x/pricefeed/types"
-
+	issuance "github.com/kava-labs/kava/x/issuance"
+	issuancekeeper "github.com/kava-labs/kava/x/issuance/keeper"
+	issuancetypes "github.com/kava-labs/kava/x/issuance/types"
 	"github.com/kava-labs/kava/x/kavadist"
 	kavadistclient "github.com/kava-labs/kava/x/kavadist/client"
 	kavadistkeeper "github.com/kava-labs/kava/x/kavadist/keeper"
@@ -74,6 +73,12 @@ import (
 	"github.com/kava-labs/kava/x/auction"
 	auctionkeeper "github.com/kava-labs/kava/x/auction/keeper"
 	auctiontypes "github.com/kava-labs/kava/x/auction/types"
+	pricefeed "github.com/kava-labs/kava/x/pricefeed"
+	pricefeedkeeper "github.com/kava-labs/kava/x/pricefeed/keeper"
+	pricefeedtypes "github.com/kava-labs/kava/x/pricefeed/types"
+	"github.com/kava-labs/kava/x/swap"
+	swapkeeper "github.com/kava-labs/kava/x/swap/keeper"
+	swaptypes "github.com/kava-labs/kava/x/swap/types"
 )
 
 const (
@@ -102,23 +107,27 @@ var (
 		evidence.AppModuleBasic{},
 		auction.AppModuleBasic{},
 		vesting.AppModuleBasic{},
-		pricefeed.AppModuleBasic{},
 		kavadist.AppModuleBasic{},
+		issuance.AppModuleBasic{},
+		pricefeed.AppModuleBasic{},
+		swap.AppModuleBasic{},
 	)
 
 	// module account permissions
 	// If these are changed, the permissions stored in accounts
 	// must also be migrated during a chain upgrade.
 	mAccPerms = map[string][]string{
-		authtypes.FeeCollectorName:     nil,
-		distrtypes.ModuleName:          nil,
-		minttypes.ModuleName:           {authtypes.Minter},
-		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
-		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
-		govtypes.ModuleName:            {authtypes.Burner},
-		kavadisttypes.KavaDistMacc:     {authtypes.Minter},
-		auctiontypes.ModuleName:        nil,
-		"liquidator":                   {authtypes.Burner, authtypes.Minter}, // TODO: for testing. Import from CDP module once migrated to v44.
+		authtypes.FeeCollectorName:      nil,
+		distrtypes.ModuleName:           nil,
+		minttypes.ModuleName:            {authtypes.Minter},
+		stakingtypes.BondedPoolName:     {authtypes.Burner, authtypes.Staking},
+		stakingtypes.NotBondedPoolName:  {authtypes.Burner, authtypes.Staking},
+		govtypes.ModuleName:             {authtypes.Burner},
+		kavadisttypes.KavaDistMacc:      {authtypes.Minter},
+		issuancetypes.ModuleAccountName: {authtypes.Minter, authtypes.Burner},
+		swaptypes.ModuleName:            nil,
+		auctiontypes.ModuleName:         nil,
+		"liquidator":                    {authtypes.Burner, authtypes.Minter}, // TODO: for testing. Import from CDP module once migrated to v44.
 	}
 )
 
@@ -161,9 +170,11 @@ type App struct {
 	crisisKeeper    crisiskeeper.Keeper
 	paramsKeeper    paramskeeper.Keeper
 	evidenceKeeper  evidencekeeper.Keeper
-	pricefeedKeeper pricefeedkeeper.Keeper
 	kavadistKeeper  kavadistkeeper.Keeper
 	auctionKeeper   auctionkeeper.Keeper
+	issuanceKeeper  issuancekeeper.Keeper
+	pricefeedKeeper pricefeedkeeper.Keeper
+	swapKeeper      swapkeeper.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -191,7 +202,8 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, evidencetypes.StoreKey,
-		pricefeedtypes.StoreKey, kavadisttypes.StoreKey, auctiontypes.StoreKey,
+		kavadisttypes.StoreKey, issuancetypes.StoreKey, pricefeedtypes.StoreKey,
+		swaptypes.StoreKey, auctiontypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 
@@ -219,9 +231,11 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 	slashingSubspace := app.paramsKeeper.Subspace(slashingtypes.ModuleName)
 	govSubspace := app.paramsKeeper.Subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable())
 	crisisSubspace := app.paramsKeeper.Subspace(crisistypes.ModuleName)
-	pricefeedSubspace := app.paramsKeeper.Subspace(pricefeedtypes.ModuleName)
 	kavadistSubspace := app.paramsKeeper.Subspace(kavadisttypes.ModuleName)
 	auctionSubspace := app.paramsKeeper.Subspace(auctiontypes.ModuleName)
+	issuanceSubspace := app.paramsKeeper.Subspace(issuancetypes.ModuleName)
+	pricefeedSubspace := app.paramsKeeper.Subspace(pricefeedtypes.ModuleName)
+	swapSubspace := app.paramsKeeper.Subspace(swaptypes.ModuleName)
 
 	bApp.SetParamStore(
 		app.paramsKeeper.Subspace(baseapp.Paramspace).WithKeyTable(paramskeeper.ConsensusParamsKeyTable()),
@@ -302,11 +316,6 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		govRouter,
 	)
 
-	app.pricefeedKeeper = pricefeedkeeper.NewKeeper(
-		appCodec,
-		keys[pricefeedtypes.StoreKey],
-		pricefeedSubspace,
-	)
 	app.kavadistKeeper = kavadistkeeper.NewKeeper(
 		appCodec,
 		keys[kavadisttypes.StoreKey],
@@ -315,6 +324,25 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		app.accountKeeper,
 		app.distrKeeper,
 		app.ModuleAccountAddrs(),
+	)
+	app.issuanceKeeper = issuancekeeper.NewKeeper(
+		appCodec,
+		keys[issuancetypes.StoreKey],
+		issuanceSubspace,
+		app.accountKeeper,
+		app.bankKeeper,
+	)
+	app.pricefeedKeeper = pricefeedkeeper.NewKeeper(
+		appCodec,
+		keys[pricefeedtypes.StoreKey],
+		pricefeedSubspace,
+	)
+	app.swapKeeper = swapkeeper.NewKeeper(
+		appCodec,
+		keys[swaptypes.StoreKey],
+		swapSubspace,
+		app.accountKeeper,
+		app.bankKeeper,
 	)
 
 	app.auctionKeeper = auctionkeeper.NewKeeper(
@@ -329,6 +357,8 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 	// NOTE: These keepers are passed by reference above, so they will contain these hooks.
 	app.stakingKeeper = *(app.stakingKeeper.SetHooks(
 		stakingtypes.NewMultiStakingHooks(app.distrKeeper.Hooks(), app.slashingKeeper.Hooks())))
+
+	// TODO: Add swap hooks after incentive upgraded
 
 	// create the module manager (Note: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.)
@@ -345,9 +375,11 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		staking.NewAppModule(appCodec, app.stakingKeeper, app.accountKeeper, app.bankKeeper),
 		evidence.NewAppModule(app.evidenceKeeper),
 		params.NewAppModule(app.paramsKeeper),
-		pricefeed.NewAppModule(app.pricefeedKeeper, app.accountKeeper),
 		kavadist.NewAppModule(app.kavadistKeeper, app.accountKeeper),
 		auction.NewAppModule(app.auctionKeeper, app.accountKeeper, app.bankKeeper),
+		issuance.NewAppModule(app.issuanceKeeper, app.accountKeeper, app.bankKeeper),
+		pricefeed.NewAppModule(app.pricefeedKeeper, app.accountKeeper),
+		swap.NewAppModule(app.swapKeeper, app.accountKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -363,6 +395,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		stakingtypes.ModuleName,
 		kavadisttypes.ModuleName,
 		auctiontypes.ModuleName,
+		issuancetypes.ModuleName,
 	)
 
 	app.mm.SetOrderEndBlockers(
@@ -386,6 +419,9 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		pricefeedtypes.ModuleName,
 		auctiontypes.ModuleName,
 		kavadisttypes.ModuleName,
+		issuancetypes.ModuleName,
+		pricefeedtypes.ModuleName,
+		swaptypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.crisisKeeper)
