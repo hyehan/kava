@@ -223,6 +223,46 @@ func NewFundedGenStateWithSameCoins(cdc codec.JSONCodec, balance sdk.Coins, addr
 	}
 }
 
+// NewFundedGenStateWithSameCoins creates a (auth and bank) genesis state populated with accounts from the given addresses and balance.
+func NewFundedGenStateWithSameCoinsWithModuleAccount(cdc codec.JSONCodec, balance sdk.Coins, addresses []sdk.AccAddress, modAcc *authtypes.ModuleAccount) GenesisState {
+	balances := make([]banktypes.Balance, len(addresses))
+	for i, addr := range addresses {
+		balances[i] = banktypes.Balance{
+			Address: addr.String(),
+			Coins:   balance,
+		}
+	}
+
+	// Add mod account balance to balances array
+	modAccBalance := banktypes.Balance{
+		Address: modAcc.Address,
+		Coins:   nil,
+	}
+	balances = append(balances, modAccBalance)
+
+	bankGenesis := banktypes.NewGenesisState(
+		banktypes.DefaultParams(),
+		balances,
+		nil,
+		[]banktypes.Metadata{}, // Metadata is not widely used in the sdk or kava
+	)
+
+	accounts := make(authtypes.GenesisAccounts, len(addresses))
+	for i := range addresses {
+		accounts[i] = authtypes.NewBaseAccount(addresses[i], nil, 0, 0)
+	}
+
+	// Add mod account to accounts array
+	accounts = append(accounts, modAcc)
+
+	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), accounts)
+
+	return GenesisState{
+		authtypes.ModuleName: cdc.MustMarshalJSON(authGenesis),
+		banktypes.ModuleName: cdc.MustMarshalJSON(bankGenesis),
+	}
+}
+
 // TODO move auth builder to a new package
 
 // // AuthGenesisBuilder is a tool for creating an auth genesis state.
@@ -269,7 +309,7 @@ func NewFundedGenStateWithSameCoins(cdc codec.JSONCodec, balance sdk.Coins, addr
 // 	return builder.WithAccounts(auth.NewBaseAccount(address, balance, nil, 0, 0))
 // }
 
-// // WithSimpleModuleAccount adds a module account to the genesis state.
+// WithSimpleModuleAccount adds a module account to the genesis state.
 // func (builder AuthGenesisBuilder) WithSimpleModuleAccount(moduleName string, balance sdk.Coins, permissions ...string) AuthGenesisBuilder {
 // 	account := supply.NewEmptyModuleAccount(moduleName, permissions...)
 // 	account.SetCoins(balance)
