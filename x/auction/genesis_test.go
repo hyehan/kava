@@ -13,16 +13,17 @@ package auction_test
 
 // 	"github.com/kava-labs/kava/app"
 // 	"github.com/kava-labs/kava/x/auction"
+// 	"github.com/kava-labs/kava/x/auction/types"
 // )
 
 // var _, testAddrs = app.GeneratePrivKeyAddressPairs(2)
 // var testTime = time.Date(1998, 1, 1, 0, 0, 0, 0, time.UTC)
-// var testAuction = auction.NewCollateralAuction(
+// var testAuction = types.NewCollateralAuction(
 // 	"seller",
 // 	c("lotdenom", 10),
 // 	testTime,
 // 	c("biddenom", 1000),
-// 	auction.WeightedAddresses{Addresses: testAddrs, Weights: []sdk.Int{sdk.OneInt(), sdk.OneInt()}},
+// 	types.WeightedAddresses{Addresses: testAddrs, Weights: []sdk.Int{sdk.OneInt(), sdk.OneInt()}},
 // 	c("debt", 1000),
 // ).WithID(3).(auction.GenesisAuction)
 
@@ -33,8 +34,7 @@ package auction_test
 // 		keeper := tApp.GetAuctionKeeper()
 // 		ctx := tApp.NewContext(true, abci.Header{})
 // 		// setup module account
-// 		supplyKeeper := tApp.GetSupplyKeeper()
-// 		moduleAcc := supplyKeeper.GetModuleAccount(ctx, auction.ModuleName)
+// 		moduleAcc := supplyKeeper.GetModuleAccount(ctx, types.ModuleName)
 // 		require.NoError(t, moduleAcc.SetCoins(testAuction.GetModuleAccountCoins()))
 // 		supplyKeeper.SetModuleAccount(ctx, moduleAcc)
 
@@ -82,7 +82,7 @@ package auction_test
 
 // 		// check init fails
 // 		require.Panics(t, func() {
-// 			auction.InitGenesis(ctx, tApp.GetAuctionKeeper(), tApp.GetSupplyKeeper(), gs)
+// 			InitGenesis(ctx, tApp.GetAuctionKeeper(), tApp.GetSupplyKeeper(), gs)
 // 		})
 // 	})
 // 	t.Run("invalid (missing mod account coins)", func(t *testing.T) {

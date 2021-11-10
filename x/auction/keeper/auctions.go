@@ -191,7 +191,7 @@ func (k Keeper) PlaceBidSurplus(ctx sdk.Context, auction *types.SurplusAuction, 
 
 	// New bidder pays back old bidder
 	// Catch edge cases of a bidder replacing their own bid, or the amount being zero (sending zero coins produces meaningless send events).
-	if strings.Compare(bidder.String(), auction.Bidder) != 0 && !auction.Bid.IsZero() {
+	if bidder.String() != auction.Bidder && !auction.Bid.IsZero() { // bidder isn't same as before AND previous auction bid must exist
 		err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, bidder, types.ModuleName, sdk.NewCoins(auction.Bid))
 		if err != nil {
 			return auction, err
@@ -205,11 +205,23 @@ func (k Keeper) PlaceBidSurplus(ctx sdk.Context, auction *types.SurplusAuction, 
 			return auction, err
 		}
 	}
+
 	// Increase in bid is burned
+
+	// Current bid is $0
+	// New bid is $10
+	// New bid - Current bid = $10 - $0 = $10
+	// $10 is sent from bidder to initator account
+
+	fmt.Printf("\nsending %s from bidder to auction.Initiator", sdk.NewCoins(bid.Sub(auction.Bid)))
 	err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, bidder, auction.Initiator, sdk.NewCoins(bid.Sub(auction.Bid)))
 	if err != nil {
 		return auction, err
 	}
+
+	// Received bid amount is burned from the module account
+	fmt.Printf("\nburning %s from auction.Initiator\n", sdk.NewCoins(bid.Sub(auction.Bid)))
+
 	err = k.bankKeeper.BurnCoins(ctx, auction.Initiator, sdk.NewCoins(bid.Sub(auction.Bid)))
 	if err != nil {
 		return auction, err
@@ -420,23 +432,30 @@ func (k Keeper) PlaceBidDebt(ctx sdk.Context, auction *types.DebtAuction, bidder
 
 	// New bidder pays back old bidder
 	// Catch edge cases of a bidder replacing their own bid
-	if strings.Compare(bidder.String(), auction.Bidder) != 0 {
+	if bidder.String() != auction.Bidder {
+		// Bidder sends coins to module
 		err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, bidder, types.ModuleName, sdk.NewCoins(auction.Bid))
 		if err != nil {
 			return auction, err
 		}
-		aucBidder, err := sdk.AccAddressFromBech32(auction.Bidder)
+		// Coins are sent from module to OLD bidder
+		oldBidder, err := sdk.AccAddressFromBech32(auction.Bidder)
 		if err != nil {
 			return auction, err
 		}
-		err = k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, aucBidder, sdk.NewCoins(auction.Bid))
+		if auction.Bidder == authtypes.NewModuleAddress(auction.Initiator).String() { // First bid on auction (where there is no previous bidder)
+			err = k.bankKeeper.SendCoinsFromModuleToModule(ctx, types.ModuleName, auction.Initiator, sdk.NewCoins(auction.Bid))
+		} else { // Second and later bids on auction (where previous bidder is a user account)
+			err = k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, oldBidder, sdk.NewCoins(auction.Bid))
+		}
 		if err != nil {
 			return auction, err
 		}
 	}
-	// Debt coins are sent to liquidator the first time a bid is placed. Amount sent is equal to min of Bid and amount of debt.
-	if strings.Compare(auction.Bidder, authtypes.NewModuleAddress(auction.Initiator).String()) == 0 {
 
+	// Debt coins are sent to liquidator the first time a bid is placed. Amount sent is equal to min of Bid and amount of debt.
+	if auction.Bidder == authtypes.NewModuleAddress(auction.Initiator).String() {
+		// Handle debt coins for first bid
 		debtAmountToReturn := sdk.MinInt(auction.Bid.Amount, auction.CorrespondingDebt.Amount)
 		debtToReturn := sdk.NewCoin(auction.CorrespondingDebt.Denom, debtAmountToReturn)
 
