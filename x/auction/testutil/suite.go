@@ -10,7 +10,7 @@ import (
 	tmtime "github.com/tendermint/tendermint/types/time"
 
 	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	// authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 
 	"github.com/kava-labs/kava/app"
@@ -29,6 +29,7 @@ type Suite struct {
 	Ctx           sdk.Context
 	Addrs         []sdk.AccAddress
 	QueryClient   types.QueryClient
+	ModAcc        *authtypes.ModuleAccount
 }
 
 // SetupTest instantiates a new app, keepers, and sets suite state
@@ -37,9 +38,7 @@ func (suite *Suite) SetupTest() {
 	app.SetBech32AddressPrefixes(config)
 	tApp := app.NewTestApp()
 
-	_, addrs := app.GeneratePrivKeyAddressPairs(1)
-	// liquidatorModAccName := "liquidator"
-	// buyerAcc := authtypes.NewEmptyModuleAccount(liquidatorModAccName, authtypes.Minter)
+	_, addrs := app.GeneratePrivKeyAddressPairs(4)
 
 	// Fund liquidator module account
 	coins := sdk.NewCoins(
@@ -47,33 +46,31 @@ func (suite *Suite) SetupTest() {
 		sdk.NewCoin("token2", sdk.NewInt(100)),
 	)
 
-	authGS := app.NewFundedGenStateWithSameCoins(tApp.AppCodec(), coins, addrs)
-
 	ctx := tApp.NewContext(true, tmproto.Header{Height: 1, Time: tmtime.Now()})
 
-	// maxAuctionDuration, err := time.ParseDuration(fmt.Sprintf("%dns", types.DefaultMaxAuctionDuration.Nanoseconds()))
-	// if err != nil {
-	// 	panic(err)
-	// }
+	modName := "liquidator"
+	modBaseAcc := authtypes.NewBaseAccount(authtypes.NewModuleAddress(modName), nil, 0, 0)
+	modAcc := authtypes.NewModuleAccount(modBaseAcc, modName, []string{authtypes.Minter, authtypes.Burner}...)
+	suite.ModAcc = modAcc
 
-	// params := types.NewParams(
-	// 	types.DefaultMaxAuctionDuration, // TODO:  test panicked: bad Duration: time: missing unit in duration "172800000000000" maxAuctionDuration,
-	// 	types.DefaultBidDuration,
-	// 	types.DefaultIncrement,
-	// 	types.DefaultIncrement,
-	// 	types.DefaultIncrement,
-	// )
-	params := types.Params{}
+	authGS := app.NewFundedGenStateWithSameCoinsWithModuleAccount(tApp.AppCodec(), coins, addrs, modAcc)
 
-	moduleGs := types.ModuleCdc.MustMarshalJSON(
+	params := types.NewParams(
+		types.DefaultMaxAuctionDuration,
+		types.DefaultBidDuration,
+		types.DefaultIncrement,
+		types.DefaultIncrement,
+		types.DefaultIncrement,
+	)
+
+	moduleGs := tApp.AppCodec().MustMarshalJSON(
 		types.NewGenesisState(types.DefaultNextAuctionID, params, []types.GenesisAuction{}),
 	)
 	gs := app.GenesisState{types.ModuleName: moduleGs}
 	tApp.InitializeFromGenesisStates(authGS, gs)
-	// tApp.InitializeFromGenesisStates(gs)
 
 	auctionKeeper := tApp.GetAuctionKeeper()
-	auctionKeeper.SetNextAuctionID(ctx, uint64(1))
+	auctionKeeper.SetParams(ctx, params)
 
 	suite.App = tApp
 	suite.Ctx = ctx
