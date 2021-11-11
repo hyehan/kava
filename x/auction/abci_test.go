@@ -6,15 +6,12 @@ import (
 	"github.com/stretchr/testify/require"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authexported "github.com/cosmos/cosmos-sdk/x/auth/exported"
-	"github.com/cosmos/cosmos-sdk/x/supply"
-
-	abci "github.com/tendermint/tendermint/abci/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
 	"github.com/kava-labs/kava/app"
 	"github.com/kava-labs/kava/x/auction"
-	"github.com/kava-labs/kava/x/cdp"
+	types "github.com/kava-labs/kava/x/auction/types"
 )
 
 func TestKeeper_BeginBlocker(t *testing.T) {
@@ -22,29 +19,38 @@ func TestKeeper_BeginBlocker(t *testing.T) {
 	_, addrs := app.GeneratePrivKeyAddressPairs(2)
 	buyer := addrs[0]
 	returnAddrs := addrs[1:]
+	var returnAddrStrs []string
+	for _, addr := range returnAddrs {
+		returnAddrStrs = append(returnAddrStrs, addr.String())
+	}
+
 	returnWeights := []sdk.Int{sdk.NewInt(1)}
-	sellerModName := cdp.LiquidatorMacc
+
+	// TODO: update to cdp.LiqMacc
+	sellerModName := "liquidator"
 
 	tApp := app.NewTestApp()
-	sellerAcc := supply.NewEmptyModuleAccount(sellerModName)
-	require.NoError(t, sellerAcc.SetCoins(cs(c("token1", 100), c("token2", 100), c("debt", 100))))
+	ctx := tApp.NewContext(true, tmproto.Header{Height: 1})
+
+	sellerAcc := authtypes.NewEmptyModuleAccount(sellerModName)
+	err := tApp.FundModuleAccount(ctx, sellerAcc.Name, cs(c("token1", 100), c("token2", 100), c("debt", 100)))
+	require.NoError(t, err)
 	tApp.InitializeFromGenesisStates(
-		NewAuthGenStateFromAccs(authexported.GenesisAccounts{
-			auth.NewBaseAccount(buyer, cs(c("token1", 100), c("token2", 100)), nil, 0, 0),
+		NewAuthGenStateFromAccs(authtypes.GenesisAccounts{
+			authtypes.NewBaseAccount(buyer, nil, 0, 0),
 			sellerAcc,
 		}),
 	)
 
-	ctx := tApp.NewContext(true, abci.Header{})
 	keeper := tApp.GetAuctionKeeper()
 
 	// Start an auction and place a bid
-	auctionID, err := keeper.StartCollateralAuction(ctx, sellerModName, c("token1", 20), c("token2", 50), returnAddrs, returnWeights, c("debt", 40))
+	auctionID, err := keeper.StartCollateralAuction(ctx, sellerModName, c("token1", 20), c("token2", 50), returnAddrStrs, returnWeights, c("debt", 40))
 	require.NoError(t, err)
 	require.NoError(t, keeper.PlaceBid(ctx, auctionID, buyer, c("token2", 30)))
 
 	// Run the beginblocker, simulating a block time 1ns before auction expiry
-	preExpiryTime := ctx.BlockTime().Add(auction.DefaultBidDuration - 1)
+	preExpiryTime := ctx.BlockTime().Add(types.DefaultBidDuration - 1)
 	auction.BeginBlocker(ctx.WithBlockTime(preExpiryTime), keeper)
 
 	// Check auction has not been closed yet
@@ -52,7 +58,7 @@ func TestKeeper_BeginBlocker(t *testing.T) {
 	require.True(t, found)
 
 	// Run the endblocker, simulating a block time equal to auction expiry
-	expiryTime := ctx.BlockTime().Add(auction.DefaultBidDuration)
+	expiryTime := ctx.BlockTime().Add(types.DefaultBidDuration)
 	auction.BeginBlocker(ctx.WithBlockTime(expiryTime), keeper)
 
 	// Check auction has been closed
@@ -63,7 +69,7 @@ func TestKeeper_BeginBlocker(t *testing.T) {
 func c(denom string, amount int64) sdk.Coin { return sdk.NewInt64Coin(denom, amount) }
 func cs(coins ...sdk.Coin) sdk.Coins        { return sdk.NewCoins(coins...) }
 
-func NewAuthGenStateFromAccs(accounts authexported.GenesisAccounts) app.GenesisState {
-	authGenesis := auth.NewGenesisState(auth.DefaultParams(), accounts)
-	return app.GenesisState{auth.ModuleName: auth.ModuleCdc.MustMarshalJSON(authGenesis)}
+func NewAuthGenStateFromAccs(accounts authtypes.GenesisAccounts) app.GenesisState {
+	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), accounts)
+	return app.GenesisState{authtypes.ModuleName: authtypes.ModuleCdc.MustMarshalJSON(authGenesis)}
 }
