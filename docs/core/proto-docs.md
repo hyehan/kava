@@ -165,9 +165,9 @@ BaseAuction defines common attributes of all auctions
 | ----- | ---- | ----- | ----------- |
 | `id` | [uint64](#uint64) |  |  |
 | `initiator` | [string](#string) |  |  |
-| `lot` | [bytes](#bytes) |  |  |
+| `lot` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
 | `bidder` | [string](#string) |  |  |
-| `bid` | [bytes](#bytes) |  |  |
+| `bid` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
 | `has_received_bids` | [bool](#bool) |  |  |
 | `end_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
 | `max_end_time` | [google.protobuf.Timestamp](#google.protobuf.Timestamp) |  |  |
@@ -190,8 +190,8 @@ Collateral auctions are normally used to sell off collateral seized from CDPs.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `base_auction` | [BaseAuction](#kava.auction.v1beta1.BaseAuction) |  |  |
-| `corresponding_debt` | [bytes](#bytes) |  |  |
-| `max_bid` | [bytes](#bytes) |  |  |
+| `corresponding_debt` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
+| `max_bid` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
 | `lot_returns` | [WeightedAddresses](#kava.auction.v1beta1.WeightedAddresses) |  |  |
 
 
@@ -210,7 +210,7 @@ collateral.
 | Field | Type | Label | Description |
 | ----- | ---- | ----- | ----------- |
 | `base_auction` | [BaseAuction](#kava.auction.v1beta1.BaseAuction) |  |  |
-| `corresponding_debt` | [bytes](#bytes) |  |  |
+| `corresponding_debt` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
 
 
 
@@ -471,7 +471,7 @@ MsgPlaceBid represents a message used by bidders to place bids on auctions
 | ----- | ---- | ----- | ----------- |
 | `auction_id` | [uint64](#uint64) |  |  |
 | `bidder` | [string](#string) |  |  |
-| `amount` | [bytes](#bytes) |  |  |
+| `amount` | [cosmos.base.v1beta1.Coin](#cosmos.base.v1beta1.Coin) |  |  |
 
 
 
