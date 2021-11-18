@@ -218,7 +218,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		govtypes.StoreKey, paramstypes.StoreKey, evidencetypes.StoreKey,
 		kavadisttypes.StoreKey, issuancetypes.StoreKey, bep3types.StoreKey,
 		pricefeedtypes.StoreKey, swaptypes.StoreKey, committeetypes.StoreKey,
-    auctiontypes.StoreKey,
+		auctiontypes.StoreKey,
 	)
 	tkeys := sdk.NewTransientStoreKeys(paramstypes.TStoreKey)
 
@@ -376,6 +376,7 @@ func NewApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer, encodingConfig
 		auctionSubspace,
 		app.bankKeeper,
 		app.accountKeeper,
+	)
 
 	// create committee keeper with router
 	committeeGovRouter := govtypes.NewRouter()
