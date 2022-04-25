@@ -1629,6 +1629,11 @@
         "params": { "max_expected_time_per_block": "30000000000" }
       }
     },
+    "savings": {
+      "params": {
+        "supported_denoms": []
+      }
+    },
     "incentive": {
       "params": {
         "usdx_minting_reward_periods": [
