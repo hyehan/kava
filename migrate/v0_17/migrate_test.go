@@ -120,6 +120,7 @@ func TestMigrateSavings(t *testing.T) {
 	err := ctx.Codec.UnmarshalJSON(appMap[savingstypes.ModuleName], &genstate)
 	assert.NoError(t, err)
 	assert.Len(t, genstate.Params.SupportedDenoms, 0)
+	assert.Len(t, genstate.Deposits, 0)
 }
 
 func migrateToV17AndGetAppMap(t *testing.T) (genutiltypes.AppMap, client.Context) {

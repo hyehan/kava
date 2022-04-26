@@ -1632,7 +1632,8 @@
     "savings": {
       "params": {
         "supported_denoms": []
-      }
+      },
+      "deposits": []
     },
     "incentive": {
       "params": {
